@@ -3,17 +3,17 @@ import { LoginForm } from "@/components/login-form";
 
 export default function LoginPage() {
   return (
-    <div className="grid min-h-svh w-screen lg:grid-cols-2">
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">
+    <div className="flex min-h-svh w-full items-center justify-center lg:grid lg:grid-cols-2">
+      <div className="flex w-full flex-col items-center justify-center gap-4 p-4 md:p-10">
+        <div className="flex w-full items-center justify-center">
+          <div className="w-full max-w-sm flex justify-center">
             <Suspense fallback={null}>
               <LoginForm />
             </Suspense>
           </div>
         </div>
       </div>
-      <div className="bg-muted relative hidden lg:block">
+      <div className="bg-muted relative hidden lg:block h-full">
         <img
           src="/placeholder.webp"
           alt="Image"

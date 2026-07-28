@@ -165,9 +165,9 @@ const HeroCatagoriesList = () => {
     selectedCategory === ALL_CATEGORY_LABEL ? null : selectedCategory;
 
   return (
-    <div className="w-[95%] mx-auto mb-12">
+    <div className="w-full px-4 sm:w-[95%] sm:px-0 mx-auto mb-8 md:mb-12">
       <div className="flex justify-center items-center mb-10">
-        <h2 className="text-4xl font-bold">Nos Produits</h2>
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">Nos Produits</h2>
       </div>
 
       <CategorySlider

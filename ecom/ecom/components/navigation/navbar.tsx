@@ -491,7 +491,7 @@ export default function Navbar() {
   return (
     <>
       <motion.nav
-        className="fixed top-0 z-50 flex h-16 w-full justify-center bg-white/80 py-3 backdrop-blur-sm"
+        className="fixed top-0 z-50 flex h-auto w-full justify-center bg-white/80 py-2 sm:py-3 backdrop-blur-sm"
         initial={{ opacity: 1, y: 0 }}
         animate={{
           opacity: shouldShow ? 1 : 0,

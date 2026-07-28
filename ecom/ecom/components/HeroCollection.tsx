@@ -167,7 +167,7 @@ export default function HeroCollection() {
   return (
     <div className="w-full  overflow-hidden">
       <div className="flex justify-center items-center mb-10">
-        <h2 className="text-4xl font-bold">Meilleures ventes</h2>
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">Meilleures ventes</h2>
       </div>
       {error && (
         <div className="mb-6 text-center text-sm text-red-600">
@@ -250,8 +250,7 @@ export default function HeroCollection() {
         <Link
           href={"/"}
           onClick={(e) => e.stopPropagation()} // prevent modal open on click
-          className="inline-block  text-white py-4 px-8 rounded-sm text-base font-medium
- bg-yellow-600 hover:bg-yellow-600/90  transition-all duration-200 mt-10"
+          className="inline-block text-white py-3 px-6 rounded-sm text-sm font-medium sm:py-4 sm:px-8 sm:text-base bg-yellow-600 hover:bg-yellow-600/90 transition-all duration-200 mt-6 sm:mt-10"
         >
           <ShoppingBasket className="inline-block mr-2 size-5" />
           Voir tous les produits

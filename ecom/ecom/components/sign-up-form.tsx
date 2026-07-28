@@ -62,8 +62,8 @@ export function SignUpForm({
   };
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="border-0 shadow-none w-[420px] ">
+    <div className={cn("flex flex-col gap-6 w-full max-w-[420px] mx-auto", className)} {...props}>
+      <Card className="border-0 shadow-none w-full">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl text-yellow-700">Sign up</CardTitle>
           <CardDescription>Create a new account</CardDescription>

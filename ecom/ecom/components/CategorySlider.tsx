@@ -58,7 +58,7 @@ const CategorySlider = <T extends string = string>({
         onClick={() => scroll("left")}
         aria-label="Scroll left"
         disabled={!canScrollLeft}
-        className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 bg-white border rounded-full shadow-md p-2 transition duration-300 hover:bg-gray-100 z-10 ${
+        className={`absolute left-0 top-1/2 -translate-y-1/2 bg-white border rounded-full shadow-md p-1.5 sm:p-2 transition duration-300 hover:bg-gray-100 z-10 ${
           canScrollLeft ? "opacity-100" : "opacity-50 cursor-not-allowed"
         }`}
       >
@@ -69,7 +69,7 @@ const CategorySlider = <T extends string = string>({
         onClick={() => scroll("right")}
         aria-label="Scroll right"
         disabled={!canScrollRight}
-        className={`absolute right-0 top-1/2 translate-x-1/2 -translate-y-1/2 bg-white border rounded-full shadow-md p-2 transition duration-300 hover:bg-gray-100 z-10 ${
+        className={`absolute right-0 top-1/2 -translate-y-1/2 bg-white border rounded-full shadow-md p-1.5 sm:p-2 transition duration-300 hover:bg-gray-100 z-10 ${
           canScrollRight ? "opacity-100" : "opacity-50 cursor-not-allowed"
         }`}
       >
@@ -79,12 +79,12 @@ const CategorySlider = <T extends string = string>({
       {/* Scrollable categories */}
       <div
         ref={scrollRef}
-        className="flex gap-4 overflow-x-auto no-scrollbar whitespace-nowrap px-10 py-2 scroll-smooth"
+        className="flex gap-2 sm:gap-4 overflow-x-auto no-scrollbar whitespace-nowrap px-8 sm:px-10 py-2 scroll-smooth"
       >
         {categories.map((category, index) => (
           <button
             key={index}
-            className={`px-4 py-2 rounded-full border flex-shrink-0 transition duration-200
+            className={`px-3 py-1.5 text-sm sm:px-4 sm:py-2 sm:text-base rounded-full border flex-shrink-0 transition duration-200
               ${
                 selectedCategory === category
                   ? "bg-yellow-600 text-white border-yellow-600"

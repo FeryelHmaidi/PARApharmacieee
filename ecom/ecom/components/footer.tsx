@@ -129,7 +129,7 @@ const Footer = () => {
             <iframe
               title="Localisation Tunis"
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3218.0560473850487!2d10.179678777485364!3d36.806494272180824!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1302c4306b400a4f%3A0x90c2f651ef6ed9a!2sAvenue%20Habib%20Bourguiba%2C%20Tunis%2C%20Tunisia!5e0!3m2!1sen!2stn!4v1733500000000!5m2!1sen!2stn"
-              className="h-[320px] w-full"
+              className="h-[200px] sm:h-[260px] md:h-[320px] w-full"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               allowFullScreen

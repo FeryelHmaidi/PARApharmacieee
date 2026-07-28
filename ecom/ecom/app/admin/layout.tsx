@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import AppSidebar from "./components/AppSidebar.server";
 import { createClient } from "@/lib/supabase/server";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 export default async function AdminLayout({
   children,
@@ -27,9 +28,21 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex">
-      <AppSidebar />
-      <main className="flex-1">{children}</main>
-    </div>
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex min-h-screen w-full flex-col">
+        {/* Mobile Header for Admin Navigation */}
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur-sm md:hidden">
+          <div className="flex items-center gap-3">
+            <SidebarTrigger />
+            <span className="font-bold text-yellow-700">PharmaStore Admin</span>
+          </div>
+        </header>
+
+        <div className="flex flex-1 w-full relative">
+          <AppSidebar />
+          <main className="flex-1 w-full min-w-0">{children}</main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }

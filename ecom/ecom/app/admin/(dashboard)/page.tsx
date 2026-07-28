@@ -3,11 +3,11 @@ import PageModel from "./components/PageModel";
 
 export default function AdminDashboardPage() {
   return (
-    <div className="h-screen w-screen overflow-x-hidden pl-60">
-      <section className="flex min-h-screen w-full flex-col gap-10 overflow-auto px-6 py-16 md:px-12 xl:px-16">
+    <div className="min-h-screen w-full overflow-x-hidden p-4 md:p-8">
+      <section className="flex w-full flex-col gap-6 md:gap-8">
         <header className="space-y-2">
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">
-            <LayoutDashboard className="mr-2 inline h-8 w-8 text-yellow-600" />{" "}
+          <h1 className="text-2xl md:text-3xl font-semibold text-slate-900 dark:text-slate-100">
+            <LayoutDashboard className="mr-2 inline h-7 w-7 md:h-8 md:w-8 text-yellow-600" />{" "}
             Dashboard
           </h1>
         </header>
