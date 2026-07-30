@@ -5,6 +5,7 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { ChartArea, PackageSearch, Pill, Settings } from "lucide-react";
@@ -32,6 +33,13 @@ const items = [
 
 export function AdminSidebarMenu() {
   const pathname = usePathname();
+  const { setOpenMobile, isMobile } = useSidebar();
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <SidebarMenu className="mt-8">
@@ -40,6 +48,7 @@ export function AdminSidebarMenu() {
           <SidebarMenuButton
             isActive={pathname === item.url}
             asChild
+            onClick={handleLinkClick}
             className={cn(
               pathname === item.url
                 ? "bg-yellow-100 text-yellow-600 hover:scale-[101%] transition-all duration-300 w-full justify-start py-5"

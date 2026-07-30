@@ -59,7 +59,7 @@ export default function ClientSidebar({
   }, [router]);
 
   return (
-    <Sidebar className="bg-white text-slate-900 border-r border-gray-200 w-60">
+    <Sidebar collapsible="offcanvas" className="bg-white text-slate-900 border-r border-gray-200 w-60">
       <SidebarContent className="bg-white">
         <SidebarGroup className="bg-white">
           <SidebarGroupLabel>

@@ -30,8 +30,8 @@ export default async function AdminLayout({
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full flex-col bg-white text-slate-900">
-        {/* Mobile Header for Admin Navigation */}
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-white px-4 backdrop-blur-sm md:hidden">
+        {/* Admin Navigation Header */}
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-white px-4">
           <div className="flex items-center gap-3">
             <SidebarTrigger />
             <span className="font-bold text-yellow-700">PharmaStore Admin</span>
