@@ -45,6 +45,7 @@ type ProductStatus = Database["public"]["Enums"]["product_status"];
 type VariantFormState = {
   id: string;
   variantId?: string;
+  costPrice: string;
   price: string;
   currency: string;
   stock: string;
@@ -68,6 +69,7 @@ const createVariantFormState = (variant?: VariantRow): VariantFormState => ({
       ? globalThis.crypto.randomUUID()
       : Math.random().toString(36).slice(2)),
   variantId: variant?.id,
+  costPrice: variant && (variant as any).cost_price != null ? String((variant as any).cost_price) : "",
   price: variant ? String(variant.price ?? "") : "",
   currency: variant?.currency ?? DEFAULT_CURRENCY,
   stock: variant ? String(variant.stock ?? "") : "",
@@ -131,6 +133,12 @@ export default function ProductUploadSheet({
   const [sku, setSku] = useState(initialProduct?.sku ?? "");
   const [description, setDescription] = useState(
     initialProduct?.description ?? ""
+  );
+  const [category, setCategory] = useState(
+    (initialProduct as any)?.category ?? ""
+  );
+  const [subCategory, setSubCategory] = useState(
+    (initialProduct as any)?.sub_category ?? (initialProduct as any)?.subcategory ?? ""
   );
   const [variantForms, setVariantForms] =
     useState<VariantFormState[]>(buildInitialVariants);
@@ -351,6 +359,8 @@ export default function ProductUploadSheet({
     setName(target?.name ?? "");
     setSku(target?.sku ?? "");
     setDescription(target?.description ?? "");
+    setCategory((target as any)?.category ?? "");
+    setSubCategory((target as any)?.sub_category ?? (target as any)?.subcategory ?? "");
     setVariantForms(
       target?.variants?.length
         ? (target.variants as VariantRow[]).map((variant) =>
@@ -721,6 +731,27 @@ export default function ProductUploadSheet({
                 })}
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="product-category">Catégorie</Label>
+                <Input
+                  id="product-category"
+                  placeholder="ex. Visage, Solaire, Soins..."
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="product-subcategory">Sous-catégorie</Label>
+                <Input
+                  id="product-subcategory"
+                  placeholder="ex. Crème hydratante, Sérum..."
+                  value={subCategory}
+                  onChange={(e) => setSubCategory(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
           <div>
@@ -866,8 +897,28 @@ export default function ProductUploadSheet({
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="flex flex-col gap-2">
+                      <Label htmlFor={`variant-cost-${variant.id}`}>
+                        Prix d'achat
+                      </Label>
+                      <Input
+                        id={`variant-cost-${variant.id}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="15.00"
+                        value={variant.costPrice}
+                        onChange={(e) =>
+                          updateVariantField(
+                            variant.id,
+                            "costPrice",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
                       <Label htmlFor={`variant-price-${variant.id}`}>
-                        Price
+                        Prix de vente
                       </Label>
                       <Input
                         id={`variant-price-${variant.id}`}
@@ -880,23 +931,6 @@ export default function ProductUploadSheet({
                           updateVariantField(
                             variant.id,
                             "price",
-                            e.target.value
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor={`variant-currency-${variant.id}`}>
-                        Currency
-                      </Label>
-                      <Input
-                        id={`variant-currency-${variant.id}`}
-                        placeholder="TND"
-                        value={variant.currency}
-                        onChange={(e) =>
-                          updateVariantField(
-                            variant.id,
-                            "currency",
                             e.target.value
                           )
                         }
