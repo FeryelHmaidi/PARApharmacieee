@@ -281,35 +281,41 @@ export const inventoryColumns: ColumnDef<Product>[] = [
 
   {
     id: "status",
-    header: "Status",
+    header: "Statut",
     cell: ({ row }) => {
       const p = row.original;
       const status = computeStatus(p);
       const common =
-        "px-2 py-1 rounded-sm text-sm font-medium inline-flex items-center gap-2";
+        "px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs border";
       if (status === "ok")
-        return <div className={`${common} bg-yellow-50 text-yellow-600`}>OK</div>;
+        return (
+          <div className={`${common} bg-emerald-50 text-emerald-700 border-emerald-200`}>
+            <span>En stock</span>
+          </div>
+        );
       if (status === "low")
         return (
-          <div className={`${common} bg-amber-50 text-amber-600`}>
-            <AlertTriangle className="h-4 w-4" />
-            <span>Low</span>
+          <div className={`${common} bg-amber-50 text-amber-700 border-amber-200`}>
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+            <span>Stock Faible</span>
           </div>
         );
       if (status === "expired")
         return (
-          <div className={`${common} bg-red-50 text-red-600`}>
-            <TimerOff className="h-4 w-4" />
-            <span>Expired</span>
+          <div className={`${common} bg-red-50 text-red-700 border-red-200`}>
+            <TimerOff className="h-3.5 w-3.5 text-red-600" />
+            <span>Expiré</span>
           </div>
         );
       if (status === "inactive")
         return (
-          <div className={`${common} bg-gray-50 text-gray-600`}>Inactive</div>
+          <div className={`${common} bg-slate-100 text-slate-600 border-slate-200`}>
+            <span>Inactif / Supprimé</span>
+          </div>
         );
       return <div className={common}>—</div>;
     },
-    size: 140,
+    size: 150,
   },
 
   {
