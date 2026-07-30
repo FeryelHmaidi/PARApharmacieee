@@ -59,9 +59,9 @@ export default function ClientSidebar({
   }, [router]);
 
   return (
-    <Sidebar className="bg-zinc-50 w-60">
-      <SidebarContent>
-        <SidebarGroup>
+    <Sidebar className="bg-white text-slate-900 border-r border-gray-200 w-60">
+      <SidebarContent className="bg-white">
+        <SidebarGroup className="bg-white">
           <SidebarGroupLabel>
             <Link
               href="/"
@@ -70,13 +70,13 @@ export default function ClientSidebar({
               PharmaStore
             </Link>
           </SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupContent className="bg-white">
             <AdminSidebarMenu />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="bg-white border-t border-gray-100">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
