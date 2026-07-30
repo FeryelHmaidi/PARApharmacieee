@@ -50,7 +50,7 @@ export const useInventorySnapshot = () => {
         sku: record.sku,
         best_seller: record.best_seller,
         status: record.status,
-        variants: (record.product_variants ?? []) as InventoryVariant[],
+        variants: (record.product_variants ?? []) as unknown as InventoryVariant[],
       }));
     },
     staleTime: 1000 * 60 * 5,

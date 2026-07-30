@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -344,6 +344,7 @@ export type Database = {
       product_variants: {
         Row: {
           active: boolean | null
+          cost_price: number | null
           created_at: string | null
           currency: string
           expiry_date: string | null
@@ -357,6 +358,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
+          cost_price?: number | null
           created_at?: string | null
           currency?: string
           expiry_date?: string | null
@@ -370,6 +372,7 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
+          cost_price?: number | null
           created_at?: string | null
           currency?: string
           expiry_date?: string | null
