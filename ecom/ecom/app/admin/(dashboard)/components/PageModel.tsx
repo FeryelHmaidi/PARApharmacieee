@@ -7,6 +7,7 @@ import { InventoryHealth } from "./InventoryHealth";
 import { ActiveCartsCard } from "./ActiveCartsCard";
 import { LatestOrdersCard } from "./LatestOrdersCard";
 import { ProductCategoryStatsCard } from "./ProductCategoryStatsCard";
+import { RevenueByDateCard } from "./RevenueByDateCard";
 import { useDashboardOrders } from "../hooks/useDashboardOrders";
 import { useInventorySnapshot } from "../hooks/useInventorySnapshot";
 import { useCartSessions } from "../hooks/useCartSessions";
@@ -49,6 +50,8 @@ export default function PageModel() {
           isLoading={ordersLoading || ordersFetching}
         />
       </div>
+
+      <RevenueByDateCard orders={orders} isLoading={ordersLoading || ordersFetching} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
