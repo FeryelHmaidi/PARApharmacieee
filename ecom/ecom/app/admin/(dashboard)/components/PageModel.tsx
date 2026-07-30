@@ -8,6 +8,7 @@ import { ActiveCartsCard } from "./ActiveCartsCard";
 import { LatestOrdersCard } from "./LatestOrdersCard";
 import { ProductCategoryStatsCard } from "./ProductCategoryStatsCard";
 import { RevenueByDateCard } from "./RevenueByDateCard";
+import { StockValueCard } from "./StockValueCard";
 import { useDashboardOrders } from "../hooks/useDashboardOrders";
 import { useInventorySnapshot } from "../hooks/useInventorySnapshot";
 import { useCartSessions } from "../hooks/useCartSessions";
@@ -37,6 +38,8 @@ export default function PageModel() {
         carts={carts}
         isLoading={ordersLoading || inventoryLoading || cartsLoading}
       />
+
+      <StockValueCard inventory={inventory} isLoading={inventoryLoading || inventoryFetching} />
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">

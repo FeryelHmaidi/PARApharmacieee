@@ -50,7 +50,9 @@ export type InventoryVariant = Pick<
   | "size_value"
   | "size_unit"
   | "expiry_date"
->;
+> & {
+  cost_price?: number | null;
+};
 
 export type InventoryProduct = Pick<
   PublicDatabase["public"]["Tables"]["products"]["Row"],
