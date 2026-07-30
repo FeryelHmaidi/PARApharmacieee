@@ -76,6 +76,33 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: "online", label: "Online payment" },
 ];
 
+export const TUNISIAN_GOVERNORATES = [
+  "Ariana",
+  "Béja",
+  "Ben Arous",
+  "Bizerte",
+  "Gabès",
+  "Gafsa",
+  "Jendouba",
+  "Kairouan",
+  "Kasserine",
+  "Kébili",
+  "Le Kef",
+  "Mahdia",
+  "La Manouba",
+  "Médenine",
+  "Monastir",
+  "Nabeul",
+  "Sfax",
+  "Sidi Bouzid",
+  "Siliana",
+  "Sousse",
+  "Tataouine",
+  "Tozeur",
+  "Tunis",
+  "Zaghouan",
+];
+
 
 const CURRENCY_OPTIONS = ["TND", "USD", "EUR"];
 
@@ -449,15 +476,22 @@ export function ManageOrderSheet({
                   />
                 </div>
                 <div>
-                  <Label htmlFor="postalCode">Postal code</Label>
-                  <Input
-                    id="postalCode"
+                  <Label htmlFor="governorate">Gouvernorat</Label>
+                  <Select
                     value={form.postalCode}
-                    onChange={(event) =>
-                      handleChange("postalCode", event.target.value)
-                    }
-                    placeholder="1001"
-                  />
+                    onValueChange={(val) => handleChange("postalCode", val)}
+                  >
+                    <SelectTrigger id="governorate" className="w-full">
+                      <SelectValue placeholder="Choisir un gouvernorat" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TUNISIAN_GOVERNORATES.map((gov) => (
+                        <SelectItem key={gov} value={gov}>
+                          {gov}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>

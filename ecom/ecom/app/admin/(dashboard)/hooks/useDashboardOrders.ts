@@ -53,7 +53,13 @@ export const useDashboardOrders = (months = 12) => {
               product:products (
                 id,
                 name,
-                sku
+                sku,
+                product_tags (
+                  tag:tags (
+                    id,
+                    name
+                  )
+                )
               )
             )
           `

@@ -5,6 +5,14 @@ import { useCartStore, selectCartTotals } from "@/hooks/useCartStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { TUNISIAN_GOVERNORATES } from "../admin/orders/components/ManageOrderSheet";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash } from "lucide-react";
@@ -272,14 +280,22 @@ const CartPage = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="postalCode">Code postal</Label>
-                    <Input
-                      id="postalCode"
+                    <Label htmlFor="postalCode">Gouvernorat</Label>
+                    <Select
                       value={form.postalCode}
-                      onChange={(e) =>
-                        handleInputChange("postalCode", e.target.value)
-                      }
-                    />
+                      onValueChange={(val) => handleInputChange("postalCode", val)}
+                    >
+                      <SelectTrigger id="postalCode" className="w-full">
+                        <SelectValue placeholder="Choisir un gouvernorat" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TUNISIAN_GOVERNORATES.map((gov) => (
+                          <SelectItem key={gov} value={gov}>
+                            {gov}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>

@@ -27,10 +27,14 @@ export type DashboardOrderItem = Pick<
   | "quantity"
   | "price_at_purchase"
 > & {
-  product?: Pick<
+  product?: (Pick<
     PublicDatabase["public"]["Tables"]["products"]["Row"],
     "id" | "name" | "sku"
-  > | null;
+  > & {
+    product_tags?: Array<{
+      tag?: { id: string; name: string } | null;
+    }> | null;
+  }) | null;
 };
 
 export type DashboardOrder = DashboardOrderRow & {

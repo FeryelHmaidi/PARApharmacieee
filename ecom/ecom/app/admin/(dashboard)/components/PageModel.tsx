@@ -6,6 +6,7 @@ import { FulfillmentBreakdown } from "./FulfillmentBreakdown";
 import { InventoryHealth } from "./InventoryHealth";
 import { ActiveCartsCard } from "./ActiveCartsCard";
 import { LatestOrdersCard } from "./LatestOrdersCard";
+import { ProductCategoryStatsCard } from "./ProductCategoryStatsCard";
 import { useDashboardOrders } from "../hooks/useDashboardOrders";
 import { useInventorySnapshot } from "../hooks/useInventorySnapshot";
 import { useCartSessions } from "../hooks/useCartSessions";
@@ -62,6 +63,8 @@ export default function PageModel() {
           error={cartsError}
         />
       </div>
+
+      <ProductCategoryStatsCard orders={orders} isLoading={ordersLoading || ordersFetching} />
 
       <LatestOrdersCard orders={orders} isLoading={ordersLoading} />
     </div>
