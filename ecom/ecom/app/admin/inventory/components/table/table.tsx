@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DataTable } from "./data-table";
@@ -7,6 +8,29 @@ import { inventoryColumns } from "./columns";
 import { useFetchProducts } from "../../hooks/useFetchProducts";
 import type { ProductWithRelations } from "../../types";
 import ProductUploadSheet from "../ProductUploadSheet";
+
+const getProductPriority = (p: ProductWithRelations) => {
+  if (p.status === "inactive") return 4; // Inactive/deleted at bottom
+
+  const variants = p.variants ?? [];
+  if (!variants.length) return 1;
+
+  const now = Date.now();
+  const allExpired = variants.every(
+    (variant) =>
+      !!variant.expiry_date && new Date(variant.expiry_date).getTime() < now
+  );
+  if (allExpired) return 3; // Expired near bottom
+
+  const hasLowStock = variants.some((variant) => {
+    const stock = variant.stock ?? 0;
+    return stock > 0 && stock <= 10;
+  });
+
+  if (hasLowStock) return 2; // Low stock
+
+  return 1; // Active OK at top
+};
 
 export default function Table() {
   const {
@@ -16,6 +40,20 @@ export default function Table() {
     refetch,
     isFetching,
   } = useFetchProducts();
+
+  const sortedProducts = useMemo(() => {
+    if (!products || !products.length) return [];
+    return [...(products as ProductWithRelations[])].sort((a, b) => {
+      const priorityA = getProductPriority(a);
+      const priorityB = getProductPriority(b);
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [products]);
 
   const renderInner = () => {
     if (isLoading) {
@@ -38,7 +76,7 @@ export default function Table() {
       );
     }
 
-    if (!products || products.length === 0) {
+    if (!sortedProducts || sortedProducts.length === 0) {
       return (
         <>
           <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
@@ -62,7 +100,7 @@ export default function Table() {
       <div className="px-4 py-2">
         <DataTable
           columns={inventoryColumns}
-          data={(products ?? []) as ProductWithRelations[]}
+          data={sortedProducts}
         />
       </div>
     );
