@@ -37,6 +37,24 @@ const getActiveCarts = (carts?: CartSession[] | null) => {
   }).length;
 };
 
+const getTodayRevenueAndCount = (orders?: DashboardOrder[] | null) => {
+  if (!orders?.length) return { todayRevenue: 0, todayCount: 0 };
+  const todayStr = new Date().toISOString().split("T")[0];
+  let todayRevenue = 0;
+  let todayCount = 0;
+
+  for (const order of orders) {
+    if (!order.created_at) continue;
+    const dateStr = new Date(order.created_at).toISOString().split("T")[0];
+    if (dateStr === todayStr) {
+      todayRevenue += order.total_amount ?? 0;
+      todayCount += 1;
+    }
+  }
+
+  return { todayRevenue, todayCount };
+};
+
 type DashboardMetricsProps = {
   orders?: DashboardOrder[] | null;
   inventory?: InventoryProduct[] | null;
@@ -62,28 +80,29 @@ export function DashboardMetrics({
     )
   ).length;
   const lowStockSkus = getLowStockCount(inventory);
-  const activeCarts = getActiveCarts(carts);
+  const { todayRevenue, todayCount } = getTodayRevenueAndCount(list);
 
   const metrics = [
     {
-      label: "Gross revenue",
+      label: "CA Aujourd'hui",
+      value: formatCurrency(todayRevenue, currency),
+      helper: `${todayCount} commande${todayCount > 1 ? "s" : ""} aujourd'hui`,
+      highlight: true,
+    },
+    {
+      label: "Chiffre d'affaires total",
       value: formatCurrency(totalRevenue, currency),
-      helper: `${list.length} orders in view`,
+      helper: `${list.length} commandes au total`,
     },
     {
-      label: "Active orders",
+      label: "Commandes en cours",
       value: activeOrders.toString(),
-      helper: "In fulfillment pipeline",
+      helper: "En cours de livraison / traitement",
     },
     {
-      label: "Low-stock SKUs",
+      label: "SKU Stock Faible",
       value: lowStockSkus.toString(),
-      helper: `≤ ${LOW_STOCK_THRESHOLD} units remaining`,
-    },
-    {
-      label: "Active carts",
-      value: activeCarts.toString(),
-      helper: "Shoppers still browsing",
+      helper: `≤ ${LOW_STOCK_THRESHOLD} unités restantes`,
     },
   ];
 
@@ -104,14 +123,21 @@ export function DashboardMetrics({
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {metrics.map((metric) => (
-        <Card key={metric.label} className="space-y-2 border bg-card p-4">
-          <p className="text-xs font-medium uppercase text-muted-foreground">
+        <Card
+          key={metric.label}
+          className={`space-y-2 border p-4 rounded-2xl ${
+            metric.highlight
+              ? "bg-yellow-500/10 border-yellow-200 text-yellow-900"
+              : "bg-white text-slate-900"
+          }`}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {metric.label}
           </p>
-          <p className="text-2xl font-semibold text-foreground">
+          <p className="text-2xl font-bold text-foreground">
             {metric.value}
           </p>
-          <p className="text-sm text-muted-foreground">{metric.helper}</p>
+          <p className="text-xs text-muted-foreground">{metric.helper}</p>
         </Card>
       ))}
     </div>
