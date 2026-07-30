@@ -850,7 +850,7 @@ export default function ProductUploadSheet({
                   className="space-y-4 rounded-lg border p-4"
                 >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm font-medium">Variant {index + 1}</p>
+                    <p className="text-sm font-medium">Nom de produit {variantForms.length > 1 ? index + 1 : ""}</p>
                     {variantForms.length > 1 && (
                       <Button
                         type="button"

@@ -164,7 +164,7 @@ export const ActionsCell = ({ product }: { product: Product }) => {
         const label =
           v.size_value != null && v.size_unit
             ? `${v.size_value} ${v.size_unit}`
-            : "Variant";
+            : "Nom de produit";
         const currency = v.currency ?? DEFAULT_CURRENCY;
         const priceLabel = formatCurrency(v.price ?? 0, currency);
         const soldOut = (v.stock ?? 0) === 0;
