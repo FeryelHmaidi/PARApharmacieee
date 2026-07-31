@@ -45,26 +45,31 @@ export function DataTable<TData, TValue>({
         if (!matchesName && !matchesSku) return false;
       }
 
-      // 2. Search by Category (Tags)
+      // 2. Search by Category (Tags, Category, Subcategory)
       if (categoryFilter.trim()) {
         const catQ = categoryFilter.toLowerCase().trim();
         const tags = product.tags ?? [];
-        const matchesCat = tags.some((t: any) =>
+        const matchesTag = tags.some((t: any) =>
           t.name?.toLowerCase().includes(catQ)
         );
-        if (!matchesCat) return false;
+        const matchesCatField =
+          product.category?.toLowerCase().includes(catQ) ||
+          product.sub_category?.toLowerCase().includes(catQ);
+
+        if (!matchesTag && !matchesCatField) return false;
       }
 
-      // 3. Search by Brand (Marque)
+      // 3. Search by Brand (Marque, Name, Description, Tags)
       if (brandFilter.trim()) {
         const brandQ = brandFilter.toLowerCase().trim();
         const matchesName = product.name?.toLowerCase().includes(brandQ);
         const matchesDesc = product.description?.toLowerCase().includes(brandQ);
+        const matchesBrandField = product.brand?.toLowerCase().includes(brandQ);
         const tags = product.tags ?? [];
         const matchesTag = tags.some((t: any) =>
           t.name?.toLowerCase().includes(brandQ)
         );
-        if (!matchesName && !matchesDesc && !matchesTag) return false;
+        if (!matchesName && !matchesDesc && !matchesBrandField && !matchesTag) return false;
       }
 
       return true;

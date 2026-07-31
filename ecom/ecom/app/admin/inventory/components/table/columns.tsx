@@ -10,11 +10,12 @@ import {
 } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ActionsCell } from "./ActionsCell";
-import type { ProductWithRelations, VariantRow, PhotoRow } from "../../types";
+import type { ProductWithRelations, VariantRow, PhotoRow, TagRow } from "../../types";
 
 type Product = ProductWithRelations;
 type Variant = VariantRow;
 type Photo = PhotoRow;
+type Tag = TagRow;
 
 const DEFAULT_CURRENCY = "TND";
 
@@ -133,17 +134,17 @@ export const inventoryColumns: ColumnDef<Product>[] = [
     cell: ({ row }) => {
       const p = row.original;
       const tags: TagRow[] = p.tags ?? [];
-      const categoryName = (p as any).category || (tags[0]?.name ?? "Général");
+
+      if (!tags.length) {
+        return <span className="text-xs text-slate-400 italic">Non catégorisé</span>;
+      }
 
       return (
-        <div className="flex flex-wrap gap-1 items-center max-w-[180px]">
-          <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-semibold text-yellow-800 border border-yellow-200">
-            {categoryName}
-          </span>
-          {tags.slice(1, 3).map((t) => (
+        <div className="flex flex-wrap gap-1 items-center max-w-[200px]">
+          {tags.map((t) => (
             <span
               key={t.id}
-              className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 border"
+              className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-0.5 text-xs font-semibold text-yellow-800 border border-yellow-200"
             >
               {t.name}
             </span>
@@ -151,7 +152,7 @@ export const inventoryColumns: ColumnDef<Product>[] = [
         </div>
       );
     },
-    size: 160,
+    size: 180,
   },
 
   {

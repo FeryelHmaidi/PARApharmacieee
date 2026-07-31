@@ -491,7 +491,32 @@ export default function ProductUploadSheet({
     const status: ProductStatus = inactive ? "inactive" : "active";
     const descriptionValue = description.trim() || null;
     const initialTagIds = (initialProduct?.tags ?? []).map((tag) => tag.id);
-    const uniqueSelectedTagIds = Array.from(new Set(selectedTagIds));
+
+    let finalTagIds = [...selectedTagIds];
+
+    if (category.trim()) {
+      try {
+        const catTag = await createTagMutation.mutateAsync(category.trim());
+        if (catTag?.id && !finalTagIds.includes(catTag.id)) {
+          finalTagIds.push(catTag.id);
+        }
+      } catch (err) {
+        console.error("Error saving category tag:", err);
+      }
+    }
+
+    if (subCategory.trim()) {
+      try {
+        const subCatTag = await createTagMutation.mutateAsync(subCategory.trim());
+        if (subCatTag?.id && !finalTagIds.includes(subCatTag.id)) {
+          finalTagIds.push(subCatTag.id);
+        }
+      } catch (err) {
+        console.error("Error saving subcategory tag:", err);
+      }
+    }
+
+    const uniqueSelectedTagIds = Array.from(new Set(finalTagIds));
 
     try {
       if (isEditMode && initialProduct?.id) {
