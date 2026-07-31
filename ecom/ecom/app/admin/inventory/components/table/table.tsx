@@ -10,26 +10,37 @@ import type { ProductWithRelations } from "../../types";
 import ProductUploadSheet from "../ProductUploadSheet";
 
 const getProductPriority = (p: ProductWithRelations) => {
-  if (p.status === "inactive") return 4; // Inactive/deleted at bottom
+  // 5. Inactive or deleted products at the very bottom
+  if (p.status === "inactive") return 5;
 
   const variants = p.variants ?? [];
-  if (!variants.length) return 1;
+  const totalStock =
+    typeof p.total_stock === "number"
+      ? p.total_stock
+      : variants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
 
+  // 4. Expired products near bottom
   const now = Date.now();
-  const allExpired = variants.every(
-    (variant) =>
-      !!variant.expiry_date && new Date(variant.expiry_date).getTime() < now
-  );
-  if (allExpired) return 3; // Expired near bottom
+  const allExpired =
+    variants.length > 0 &&
+    variants.every(
+      (variant) =>
+        !!variant.expiry_date && new Date(variant.expiry_date).getTime() < now
+    );
+  if (allExpired) return 4;
 
+  // 3. Out of stock products (stock === 0) move to bottom
+  if (totalStock <= 0) return 3;
+
+  // 2. Low stock products (0 < stock <= 10)
   const hasLowStock = variants.some((variant) => {
     const stock = variant.stock ?? 0;
     return stock > 0 && stock <= 10;
   });
+  if (hasLowStock) return 2;
 
-  if (hasLowStock) return 2; // Low stock
-
-  return 1; // Active OK at top
+  // 1. Available in-stock products at the very top
+  return 1;
 };
 
 export default function Table() {

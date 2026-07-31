@@ -43,7 +43,14 @@ const computeStatus = (p: Product) => {
   if (p.status === "inactive") return "inactive";
 
   const variants = p.variants ?? [];
-  if (!variants.length) return "ok";
+  if (!variants.length) return "out_of_stock";
+
+  const totalStock =
+    typeof p.total_stock === "number"
+      ? p.total_stock
+      : variants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
+
+  if (totalStock <= 0) return "out_of_stock";
 
   const now = Date.now();
   const allExpired = variants.every(
@@ -118,6 +125,33 @@ export const inventoryColumns: ColumnDef<Product>[] = [
       );
     },
     size: 320,
+  },
+
+  {
+    id: "category_tags",
+    header: "Catégorie",
+    cell: ({ row }) => {
+      const p = row.original;
+      const tags: TagRow[] = p.tags ?? [];
+      const categoryName = (p as any).category || (tags[0]?.name ?? "Général");
+
+      return (
+        <div className="flex flex-wrap gap-1 items-center max-w-[180px]">
+          <span className="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-semibold text-yellow-800 border border-yellow-200">
+            {categoryName}
+          </span>
+          {tags.slice(1, 3).map((t) => (
+            <span
+              key={t.id}
+              className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 border"
+            >
+              {t.name}
+            </span>
+          ))}
+        </div>
+      );
+    },
+    size: 160,
   },
 
   {
@@ -298,6 +332,12 @@ export const inventoryColumns: ColumnDef<Product>[] = [
           <div className={`${common} bg-amber-50 text-amber-700 border-amber-200`}>
             <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
             <span>Stock Faible</span>
+          </div>
+        );
+      if (status === "out_of_stock")
+        return (
+          <div className={`${common} bg-rose-50 text-rose-700 border-rose-200`}>
+            <span>Rupture de stock</span>
           </div>
         );
       if (status === "expired")
