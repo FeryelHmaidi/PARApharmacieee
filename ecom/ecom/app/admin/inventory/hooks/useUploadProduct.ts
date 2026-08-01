@@ -10,6 +10,7 @@ type SizeUnit = Database["public"]["Enums"]["size_unit"];
 type VariantInsert = Database["public"]["Tables"]["product_variants"]["Insert"];
 
 export type VariantDraft = {
+  cost_price?: number | null;
   price: number;
   currency: string;
   stock: number;
