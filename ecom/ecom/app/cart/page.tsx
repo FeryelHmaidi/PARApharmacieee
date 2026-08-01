@@ -28,7 +28,7 @@ import {
 import { useCheckoutProfile } from "./hooks/useCheckoutProfile";
 import { CheckoutError, usePlaceOrder } from "./hooks/usePlaceOrder";
 
-const formatPrice = (value: number) => `${value.toFixed(2)} Dt`;
+const formatPrice = (value: number) => `${value.toFixed(2).replace('.', ',')} Dt`;
 
 const CartPage = () => {
   const router = useRouter();

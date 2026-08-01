@@ -135,7 +135,7 @@ const ProductGrid: React.FC<Props> = ({
                       <>
                         {[...p.sizes]
                           .sort((a, b) => a.price - b.price)[0]
-                          .price.toFixed(2)}
+                          .price.toFixed(2).replace('.', ',')}{" "}
                         Dt
                       </>
                     ) : (

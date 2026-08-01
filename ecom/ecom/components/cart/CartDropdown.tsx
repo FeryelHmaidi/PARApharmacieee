@@ -68,7 +68,7 @@ const CartDropdown = () => {
                       {item.title}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {item.sizeLabel} · {item.unitPrice.toFixed(2)} Dt
+                      {item.sizeLabel} · {item.unitPrice.toFixed(2).replace('.', ',')} Dt
                     </p>
                     <p className="text-xs text-gray-500">
                       Qté: {item.quantity}
@@ -92,7 +92,7 @@ const CartDropdown = () => {
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Sous-total</span>
             <span className="font-semibold">
-              {totals.subtotal.toFixed(2)} Dt
+              {totals.subtotal.toFixed(2).replace('.', ',')} Dt
             </span>
           </div>
           <Button

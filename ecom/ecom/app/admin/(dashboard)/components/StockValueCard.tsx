@@ -133,7 +133,7 @@ export function StockValueCard({
                 Gain / Bénéfice Estimé
               </span>
               <span className="text-xs font-bold bg-emerald-200/60 px-2 py-0.5 rounded-full text-emerald-800">
-                +{stockSummary.marginPercent.toFixed(1)}% Marge
+                +{stockSummary.marginPercent.toFixed(1).replace('.', ',')}% Marge
               </span>
             </div>
             <div className="text-2xl font-extrabold text-emerald-700 flex items-center gap-1">

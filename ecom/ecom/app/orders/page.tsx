@@ -135,7 +135,7 @@ const OrdersPage = () => {
                   ? "En ligne"
                   : "À la livraison";
               const orderItems = order.order_items ?? [];
-              const totalDisplay = Number(order.total_amount ?? 0).toFixed(2);
+              const totalDisplay = Number(order.total_amount ?? 0).toFixed(2).replace('.', ',');
 
               return (
                 <div
@@ -184,7 +184,7 @@ const OrdersPage = () => {
                           <span className="font-semibold">
                             {(item.price_at_purchase * item.quantity).toFixed(
                               2
-                            )}{" "}
+                            ).replace('.', ',')}{" "}
                             Dt
                           </span>
                         </div>

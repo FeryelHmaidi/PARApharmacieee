@@ -227,7 +227,7 @@ export default function HeroCollection() {
                 <div className="absolute top-4 right-4 bg-white px-4 py-2 rounded-full shadow-2xl">
                   <span className="text-lg font-semibold text-yellow-600">
                     {item.sizes && item.sizes.length
-                      ? `${item.sizes[0].price.toFixed(2)}Dt`
+                      ? `${item.sizes[0].price.toFixed(2).replace('.', ',')} Dt`
                       : "Prix ND"}
                   </span>
                 </div>

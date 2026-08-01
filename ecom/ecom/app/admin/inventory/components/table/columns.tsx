@@ -25,7 +25,7 @@ const currencyFormat = (
 ) =>
   v == null
     ? "—"
-    : new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
+    : new Intl.NumberFormat("fr-FR", { style: "currency", currency }).format(
         Number(v)
       );
 

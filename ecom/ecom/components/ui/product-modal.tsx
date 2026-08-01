@@ -194,16 +194,16 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
             <div className="flex flex-col">
               <span className="text-xl font-bold sm:text-2xl md:text-3xl">
                 {selectedSize
-                  ? `${selectedSize.price.toFixed(2)}Dt`
+                  ? `${selectedSize.price.toFixed(2).replace('.', ',')} Dt`
                   : sortedSizes[0]
-                    ? `À partir de ${sortedSizes[0].price.toFixed(2)}Dt`
+                    ? `À partir de ${sortedSizes[0].price.toFixed(2).replace('.', ',')} Dt`
                     : "Prix indisponible"}
               </span>
               {product.sizes.length > 1 && !selectedSize && sortedSizes[0] && (
                 <span className="text-xs text-gray-500 sm:text-sm">
-                  {`${sortedSizes[0].price.toFixed(2)}Dt - ${sortedSizes[
+                  {`${sortedSizes[0].price.toFixed(2).replace('.', ',')} Dt - ${sortedSizes[
                     sortedSizes.length - 1
-                  ].price.toFixed(2)}Dt`}
+                  ].price.toFixed(2).replace('.', ',')} Dt`}
                 </span>
               )}
             </div>
@@ -239,7 +239,7 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
                     >
                       <span>{label}</span>
                       <span className="font-semibold">
-                        {sizeOption.price.toFixed(2)}Dt
+                        {sizeOption.price.toFixed(2).replace('.', ',')} Dt
                       </span>
                     </button>
                   );
