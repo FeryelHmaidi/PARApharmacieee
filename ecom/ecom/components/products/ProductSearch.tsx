@@ -23,7 +23,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Rechercher par nom ou description..."
-            className="w-full rounded-lg border px-4 py-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-200"
+            className="w-full rounded-lg border pl-4 pr-16 py-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-200"
           />
           <button
             onClick={() => onSearchChange("")}
