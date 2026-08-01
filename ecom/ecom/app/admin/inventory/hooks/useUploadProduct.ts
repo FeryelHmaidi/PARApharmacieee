@@ -67,6 +67,7 @@ export function useUploadProduct() {
         (variant) => ({
           product_id: productId,
           price: variant.price,
+          cost_price: variant.cost_price ?? null,
           currency: variant.currency,
           stock: variant.stock,
           expiry_date: variant.expiry_date ?? null,
