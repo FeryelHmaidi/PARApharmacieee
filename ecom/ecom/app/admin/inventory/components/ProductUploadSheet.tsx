@@ -69,8 +69,8 @@ const createVariantFormState = (variant?: VariantRow): VariantFormState => ({
       ? globalThis.crypto.randomUUID()
       : Math.random().toString(36).slice(2)),
   variantId: variant?.id,
-  costPrice: variant && (variant as any).cost_price != null ? String((variant as any).cost_price) : "",
-  price: variant ? String(variant.price ?? "") : "",
+  costPrice: variant && (variant as any).cost_price != null ? String((variant as any).cost_price).replace('.', ',') : "",
+  price: variant ? String(variant.price ?? "").replace('.', ',') : "",
   currency: variant?.currency ?? DEFAULT_CURRENCY,
   stock: variant ? String(variant.stock ?? "") : "",
   expiry: variant?.expiry_date ?? "",
@@ -251,13 +251,22 @@ export default function ProductUploadSheet({
 
     return variantForms.map((variant, index) => {
       const order = index + 1;
-      const trimmedPrice = variant.price.trim();
+      const trimmedPrice = variant.price.trim().replace(',', '.');
       const trimmedStock = variant.stock.trim();
       const trimmedCurrency = variant.currency.trim();
+      const trimmedCostPrice = variant.costPrice ? variant.costPrice.trim().replace(',', '.') : undefined;
 
       const price = Number(trimmedPrice);
       if (!Number.isFinite(price) || price <= 0) {
         throw new Error(`Variant ${order}: price must be greater than 0`);
+      }
+
+      const cost_price =
+        trimmedCostPrice && trimmedCostPrice !== ""
+          ? Number(trimmedCostPrice)
+          : null;
+      if (cost_price !== null && (!Number.isFinite(cost_price) || cost_price < 0)) {
+        throw new Error(`Variant ${order}: cost price must be zero or more`);
       }
 
       const stockValue = Number(trimmedStock);
@@ -282,6 +291,7 @@ export default function ProductUploadSheet({
 
       return {
         id: variant.variantId,
+        cost_price,
         price,
         stock: Math.max(0, Math.trunc(stockValue)),
         currency: trimmedCurrency.toUpperCase(),
@@ -922,23 +932,22 @@ export default function ProductUploadSheet({
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="flex flex-col gap-2">
-                      <Label htmlFor={`variant-cost-${variant.id}`}>
+                      <Label htmlFor={`variant-costPrice-${variant.id}`}>
                         Prix d'achat
                       </Label>
                       <Input
-                        id={`variant-cost-${variant.id}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="15.00"
+                        id={`variant-costPrice-${variant.id}`}
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="15,00"
                         value={variant.costPrice}
-                        onChange={(e) =>
-                          updateVariantField(
-                            variant.id,
-                            "costPrice",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/[^0-9.,]/g, '');
+                          val = val.replace('.', ',');
+                          const parts = val.split(',');
+                          if (parts.length > 2) val = parts[0] + ',' + parts.slice(1).join('');
+                          updateVariantField(variant.id, "costPrice", val);
+                        }}
                       />
                     </div>
                     <div className="flex flex-col gap-2">
@@ -947,18 +956,17 @@ export default function ProductUploadSheet({
                       </Label>
                       <Input
                         id={`variant-price-${variant.id}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="19.99"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="19,99"
                         value={variant.price}
-                        onChange={(e) =>
-                          updateVariantField(
-                            variant.id,
-                            "price",
-                            e.target.value
-                          )
-                        }
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/[^0-9.,]/g, '');
+                          val = val.replace('.', ',');
+                          const parts = val.split(',');
+                          if (parts.length > 2) val = parts[0] + ',' + parts.slice(1).join('');
+                          updateVariantField(variant.id, "price", val);
+                        }}
                       />
                     </div>
                   </div>
