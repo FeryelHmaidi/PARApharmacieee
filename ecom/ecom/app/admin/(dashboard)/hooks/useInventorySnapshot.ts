@@ -29,6 +29,7 @@ export const useInventorySnapshot = () => {
               id,
               stock,
               price,
+              cost_price,
               currency,
               expiry_date,
               size_value,
