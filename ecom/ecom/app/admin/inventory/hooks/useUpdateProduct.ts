@@ -38,7 +38,10 @@ export function useUpdateProduct() {
     },
     onSuccess: async () => {
       toast.success("Product updated");
-      await queryClient.invalidateQueries({ queryKey: ["products"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["products"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-inventory"] }),
+      ]);
     },
     onError: (err: any) => {
       toast.error(err?.message ?? "Failed to update product");

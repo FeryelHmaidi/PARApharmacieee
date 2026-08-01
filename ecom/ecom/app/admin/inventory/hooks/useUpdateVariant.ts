@@ -56,6 +56,7 @@ export function useUpdateVariant() {
         queryClient.invalidateQueries({
           queryKey: ["product", "variants", data.product_id],
         }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-inventory"] }),
       ]);
     },
 

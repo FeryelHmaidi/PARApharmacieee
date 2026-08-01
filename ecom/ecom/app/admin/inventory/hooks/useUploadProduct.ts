@@ -142,6 +142,7 @@ export function useUploadProduct() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["products"] }),
         queryClient.invalidateQueries({ queryKey: ["product_variants"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-inventory"] }),
       ]);
     },
     onError: (err: any) => {

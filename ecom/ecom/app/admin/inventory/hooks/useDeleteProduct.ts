@@ -28,6 +28,7 @@ export function useDeleteProduct() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["products"] }),
         queryClient.invalidateQueries({ queryKey: ["product"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-inventory"] }),
       ]);
     },
     onError: (err: any) => {

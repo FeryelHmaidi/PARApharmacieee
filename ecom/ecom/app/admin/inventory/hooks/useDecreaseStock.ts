@@ -57,6 +57,7 @@ export function useDecreaseStock() {
         data?.product_id
           ? qc.invalidateQueries({ queryKey: ["product", data.product_id] })
           : Promise.resolve(),
+        qc.invalidateQueries({ queryKey: ["dashboard-inventory"] }),
       ]);
     },
 
