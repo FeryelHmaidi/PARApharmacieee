@@ -26,6 +26,7 @@ export type UploadPayload = {
   description?: string | null;
   best_seller?: boolean;
   status?: ProductStatus;
+  brand?: string | null;
   variants: VariantDraft[];
   photos?: File[];
   tagIds?: string[];
@@ -55,6 +56,7 @@ export function useUploadProduct() {
           description: payload.description ?? null,
           best_seller: payload.best_seller ?? false,
           status: payload.status ?? "active",
+          brand: payload.brand ?? null,
         })
         .select("id")
         .single();

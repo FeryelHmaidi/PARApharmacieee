@@ -6,6 +6,7 @@ import { Calendar, DollarSign, ShoppingBag, ArrowUpRight } from "lucide-react";
 import type { DashboardOrder } from "../types";
 
 const RANGE_OPTIONS = [
+  { label: "Aujourd'hui", days: 1 },
   { label: "7 Derniers jours", days: 7 },
   { label: "30 Derniers jours", days: 30 },
   { label: "Ce mois-ci", days: 0 },
@@ -43,9 +44,12 @@ export function RevenueByDateCard({
       }
     >();
 
-    // Calculate cutoff date if filter applied
     let cutoff: Date | null = null;
-    if (selectedRangeDays > 0) {
+    if (selectedRangeDays === 1) {
+      // Aujourd'hui
+      cutoff = new Date();
+      cutoff.setHours(0, 0, 0, 0);
+    } else if (selectedRangeDays > 0) {
       cutoff = new Date();
       cutoff.setDate(now.getDate() - selectedRangeDays);
       cutoff.setHours(0, 0, 0, 0);

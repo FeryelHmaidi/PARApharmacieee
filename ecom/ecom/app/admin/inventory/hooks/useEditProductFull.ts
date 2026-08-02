@@ -45,6 +45,7 @@ type EditProductPayload = {
   description?: string | null;
   best_seller?: boolean;
   status?: ProductStatus;
+  brand?: string | null;
   variants: VariantInput[];
   removedVariantIds: string[];
   newPhotos: File[];
@@ -69,6 +70,7 @@ export function useEditProductFull() {
         description,
         best_seller,
         status,
+        brand,
         variants,
         removedVariantIds,
         newPhotos,
@@ -86,6 +88,7 @@ export function useEditProductFull() {
           description: description ?? null,
           best_seller: best_seller ?? false,
           status: status ?? "active",
+          brand: brand ?? null,
         })
         .eq("id", productId);
 

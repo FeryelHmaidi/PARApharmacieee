@@ -28,6 +28,7 @@ interface ProductModalProps {
     sizes: Size[];
     image: string;
     images?: string[];
+    brand?: string | null;
     description?: string;
   };
 }
@@ -186,8 +187,18 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
 
         {/* Product details - below images when stacked (small screens), right when side-by-side (lg+) */}
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {/* Title */}
-          <h2 className="text-lg font-bold mt-2 sm:mt-4 sm:text-xl md:text-2xl">{product.title}</h2>
+          {/* Title and Brand */}
+          {product.brand && (
+            <div className="mt-2 sm:mt-4">
+              <a
+                href={`/products?search=${encodeURIComponent(product.brand)}`}
+                className="text-sm font-semibold text-gray-500 hover:text-blue-600 hover:underline cursor-pointer"
+              >
+                {product.brand}
+              </a>
+            </div>
+          )}
+          <h2 className="text-lg font-bold mt-1 sm:text-xl md:text-2xl">{product.title}</h2>
 
           {/* Price and Rating */}
           <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-4">

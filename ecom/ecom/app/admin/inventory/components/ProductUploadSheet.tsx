@@ -140,6 +140,7 @@ export default function ProductUploadSheet({
   const [subCategory, setSubCategory] = useState(
     (initialProduct as any)?.sub_category ?? (initialProduct as any)?.subcategory ?? ""
   );
+  const [brand, setBrand] = useState(initialProduct?.brand ?? "");
   const [variantForms, setVariantForms] =
     useState<VariantFormState[]>(buildInitialVariants);
   const [bestSeller, setBestSeller] = useState(
@@ -371,6 +372,7 @@ export default function ProductUploadSheet({
     setDescription(target?.description ?? "");
     setCategory((target as any)?.category ?? "");
     setSubCategory((target as any)?.sub_category ?? (target as any)?.subcategory ?? "");
+    setBrand(target?.brand ?? "");
     setVariantForms(
       target?.variants?.length
         ? (target.variants as VariantRow[]).map((variant) =>
@@ -543,6 +545,7 @@ export default function ProductUploadSheet({
           name: trimmedName,
           sku: trimmedSku,
           description: descriptionValue,
+          brand: brand.trim() ? brand.trim() : null,
           best_seller: bestSeller,
           status,
           variants: normalizedVariants,
@@ -563,6 +566,7 @@ export default function ProductUploadSheet({
         name: trimmedName,
         sku: trimmedSku,
         description: descriptionValue,
+        brand: brand.trim() ? brand.trim() : null,
         best_seller: bestSeller,
         status,
         variants: normalizedVariants.map(
@@ -786,6 +790,16 @@ export default function ProductUploadSheet({
                   onChange={(e) => setSubCategory(e.target.value)}
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="product-brand">Marque</Label>
+              <Input
+                id="product-brand"
+                placeholder="ex. SVR, La Roche-Posay..."
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+              />
             </div>
           </div>
 

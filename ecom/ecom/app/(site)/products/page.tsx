@@ -125,6 +125,7 @@ const mapToGridProduct = (product: StorefrontProduct): GridProduct => ({
   id: product.id,
   title: product.name,
   subtitle: product.sku,
+  brand: product.brand ?? null,
   sizes: product.variants.map((variant) => ({
     variantId: variant.id,
     size: variantSizeLabel(variant),
@@ -164,6 +165,16 @@ const ProductPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] =
     useState<SliderCategory | null>(null);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const brandParam = params.get("search") || params.get("brand");
+      if (brandParam) {
+        setSearch(brandParam);
+      }
+    }
+  }, []);
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [bestSellerOnly, setBestSellerOnly] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -418,8 +429,8 @@ const ProductPage: React.FC = () => {
 
       if (query) {
         const haystack = `${product.name} ${product.sku ?? ""} ${
-          product.description ?? ""
-        }`.toLowerCase();
+          product.brand ?? ""
+        } ${product.description ?? ""}`.toLowerCase();
         if (!haystack.includes(query)) {
           return false;
         }

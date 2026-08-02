@@ -41,6 +41,7 @@ const CartPage = () => {
   const [form, setForm] = useState<AddressFormState>(initialFormState);
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethod>("cash_on_delivery");
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const profilePrefilled = useRef(false);
   const { data: profileData, isLoading: profileLoading } = useCheckoutProfile();
   const placeOrder = usePlaceOrder();
@@ -88,6 +89,8 @@ const CartPage = () => {
   };
 
   const handleCheckout = async () => {
+    setHasSubmitted(true);
+    
     if (!items.length) {
       toast.error("Votre panier est vide");
       return;
@@ -247,6 +250,7 @@ const CartPage = () => {
                       onChange={(e) =>
                         handleInputChange("fullName", e.target.value)
                       }
+                      className={hasSubmitted && !form.fullName.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                   </div>
                   <div>
@@ -257,6 +261,7 @@ const CartPage = () => {
                       onChange={(e) =>
                         handleInputChange("phone", e.target.value)
                       }
+                      className={hasSubmitted && !form.phone.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -267,6 +272,7 @@ const CartPage = () => {
                       onChange={(e) =>
                         handleInputChange("address", e.target.value)
                       }
+                      className={hasSubmitted && !form.address.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                   </div>
                   <div>
@@ -277,6 +283,7 @@ const CartPage = () => {
                       onChange={(e) =>
                         handleInputChange("city", e.target.value)
                       }
+                      className={hasSubmitted && !form.city.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}
                     />
                   </div>
                   <div>
@@ -285,7 +292,7 @@ const CartPage = () => {
                       value={form.postalCode}
                       onValueChange={(val) => handleInputChange("postalCode", val)}
                     >
-                      <SelectTrigger id="postalCode" className="w-full">
+                      <SelectTrigger id="postalCode" className={`w-full ${hasSubmitted && !form.postalCode.trim() ? "border-red-500 focus:ring-red-500" : ""}`}>
                         <SelectValue placeholder="Choisir un gouvernorat" />
                       </SelectTrigger>
                       <SelectContent>
