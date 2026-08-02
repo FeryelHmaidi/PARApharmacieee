@@ -118,6 +118,17 @@ const ProductGrid: React.FC<Props> = ({
                 <h3 className="text-base font-semibold text-gray-900 line-clamp-2">
                   {p.title}
                 </h3>
+                {p.brand && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `/products?search=${encodeURIComponent(p.brand!)}`;
+                    }}
+                    className="mt-1 text-sm font-medium text-gray-500 hover:text-blue-600 hover:underline block text-left"
+                  >
+                    {p.brand}
+                  </button>
+                )}
                 {p.subtitle && (
                   <p className="mt-1 text-sm text-gray-500 line-clamp-2">
                     {p.subtitle}
