@@ -212,6 +212,7 @@ const ProductGrid: React.FC<Props> = ({
             sizes: selectedProduct.sizes,
             image: selectedProduct.image || "/fallback-image.jpg",
             images: selectedProduct.images,
+            brand: selectedProduct.brand,
             description: selectedProduct.description,
           }}
         />
