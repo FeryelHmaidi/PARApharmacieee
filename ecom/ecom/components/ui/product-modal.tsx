@@ -172,22 +172,6 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
                 </div>
               </div>
             ))}
-            {/* Brand Logo (Under Thumbnails) */}
-            {product.brand_logo_url && (
-              <div className="flex justify-center mt-4 w-full">
-                <a
-                  href={product.brand ? `/products?search=${encodeURIComponent(product.brand)}` : '#'}
-                  className={`block h-12 w-full relative transition ${product.brand ? 'hover:opacity-80 cursor-pointer' : 'cursor-default pointer-events-none'}`}
-                  title={product.brand || "Marque"}
-                >
-                  <img
-                    src={product.brand_logo_url}
-                    alt={product.brand || "Logo de la marque"}
-                    className="h-full w-full object-contain"
-                  />
-                </a>
-              </div>
-            )}
           </div>
 
           {/* Main image and Logo wrapper */}
@@ -278,9 +262,9 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
             </div>
           )}
 
-          {/* Availability badge (based on selected size) */}
-          {selectedStock !== null && (
-            <div className="mt-3 sm:mt-4">
+          {/* Availability badge and Brand Logo */}
+          <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-4">
+            {selectedStock !== null && (
               <span
                   className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium sm:text-sm ${
                     selectedStock <= 0
@@ -296,8 +280,23 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
                     ? selectedStock === 1 ? "Dernier article en stock" : "Derniers articles en stock"
                     : "En stock"}
                 </span>
-            </div>
-          )}
+            )}
+            
+            {/* Brand Logo (Right of stock badge) */}
+            {product.brand_logo_url && (
+              <a
+                href={product.brand ? `/products?search=${encodeURIComponent(product.brand)}` : '#'}
+                className={`block h-8 sm:h-10 w-20 relative transition ${product.brand ? 'hover:opacity-80 cursor-pointer' : 'cursor-default pointer-events-none'} ml-auto`}
+                title={product.brand || "Marque"}
+              >
+                <img
+                  src={product.brand_logo_url}
+                  alt={product.brand || "Logo de la marque"}
+                  className="h-full w-full object-contain object-right"
+                />
+              </a>
+            )}
+          </div>
 
           {/* Quantity Selector */}
           <div className="mt-4 flex w-full flex-col items-stretch gap-3 sm:mt-6 sm:gap-4 md:mt-8 md:flex-row md:items-end">
