@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useSidebar } from "@/components/ui/sidebar";
 
@@ -18,3 +18,4 @@ export default function MainContent({ children }: { children: React.ReactNode })
     </main>
   );
 }
+

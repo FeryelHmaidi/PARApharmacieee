@@ -29,6 +29,7 @@ interface ProductModalProps {
     image: string;
     images?: string[];
     brand?: string | null;
+    brand_logo_url?: string | null;
     description?: string;
   };
 }
