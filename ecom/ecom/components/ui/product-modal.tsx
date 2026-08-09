@@ -263,24 +263,20 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
           {selectedStock !== null && (
             <div className="mt-3 sm:mt-4">
               <span
-                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium sm:text-sm ${
-                  selectedStock <= 0
-                    ? "bg-red-100 text-red-700"
-                    : selectedStock <= 5
-                    ? "bg-yellow-100 text-yellow-800"
-                    : "bg-green-100 text-green-700"
-                }`}
-              >
-                {selectedStock <= 0
-                  ? "Rupture de stock"
-                  : selectedStock <= 5
-                  ? `Plus que ${selectedStock} article${
-                      selectedStock === 1 ? "" : "s"
-                    } en stock`
-                  : `${selectedStock} article${
-                      selectedStock === 1 ? "" : "s"
-                    } en stock`}
-              </span>
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium sm:text-sm ${
+                    selectedStock <= 0
+                      ? "bg-red-100 text-red-700"
+                      : selectedStock <= 2
+                      ? "bg-yellow-100 text-yellow-800"
+                      : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {selectedStock <= 0
+                    ? "En rupture de stock"
+                    : selectedStock <= 2
+                    ? selectedStock === 1 ? "Dernier article en stock" : "Derniers articles en stock"
+                    : "En stock"}
+                </span>
             </div>
           )}
 
