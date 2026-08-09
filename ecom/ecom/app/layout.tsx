@@ -30,7 +30,7 @@ export default function RootLayout({
       <body className={`${geistSans.className} antialiased relative `}>
         {/* Providers is client-only and creates ThemeProvider/SidebarProvider/QueryClient */}
         <Providers>
-          <div className="flex min-h-screen w-screen overflow-x-hidden flex-col">
+          <div className="flex min-h-screen w-screen flex-col">
             <main className="flex-grow">{children}</main>
           </div>
         </Providers>

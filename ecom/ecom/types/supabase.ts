@@ -517,7 +517,7 @@ export type Database = {
         | "cancelled"
         | "returned"
       product_status: "active" | "inactive"
-      size_unit: "ml" | "g" | "mg" | "unit" | "tablet" | "capsule" | "oz"
+      size_unit: "ml" | "g" | "mg" | "unit" | "tablet" | "capsule"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -656,7 +656,7 @@ export const Constants = {
         "returned",
       ],
       product_status: ["active", "inactive"],
-      size_unit: ["ml", "g", "mg", "unit", "tablet", "capsule", "oz"],
+      size_unit: ["ml", "g", "mg", "unit", "tablet", "capsule"],
     },
   },
 } as const

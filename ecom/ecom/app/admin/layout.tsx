@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import AppSidebar from "./components/AppSidebar.server";
+import MainContent from "./components/MainContent";
 import { createClient } from "@/lib/supabase/server";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
@@ -40,7 +41,7 @@ export default async function AdminLayout({
 
         <div className="flex flex-1 w-full relative bg-white">
           <AppSidebar />
-          <main className="flex-1 w-full min-w-0 bg-white text-slate-900">{children}</main>
+          <MainContent>{children}</MainContent>
         </div>
       </div>
     </SidebarProvider>
