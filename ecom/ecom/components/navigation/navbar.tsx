@@ -148,8 +148,8 @@ const SearchBar = ({
         onChange={onChange}
         onFocus={onFocus}
         onBlur={onBlur}
-        placeholder="Rechercher un produit..."
-        aria-label="Rechercher un produit"
+        placeholder="Rechercher par produit, marque ou catégorie..."
+        aria-label="Rechercher un produit, marque ou catégorie"
         className="h-11 w-full rounded-xl border bg-white pl-10 pr-24 text-sm focus-visible:ring-yellow-500"
       />
       <button
@@ -302,8 +302,8 @@ export default function Navbar() {
     const handler = setTimeout(async () => {
       const { data, error } = await supabase
         .from("products")
-        .select(`id, name, sku, product_photos (url, position)`)
-        .ilike("name", `%${query}%`)
+        .select(`id, name, sku, brand, product_photos (url, position)`)
+        .or(`name.ilike.%${query}%,brand.ilike.%${query}%`)
         .order("name", { ascending: true })
         .limit(6);
 

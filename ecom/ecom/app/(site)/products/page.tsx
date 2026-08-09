@@ -431,7 +431,7 @@ const ProductPage: React.FC = () => {
       if (query) {
         const haystack = `${product.name} ${product.sku ?? ""} ${
           product.brand ?? ""
-        } ${product.description ?? ""}`.toLowerCase();
+        } ${product.description ?? ""} ${product.categories.join(" ")} ${product.tagNames.join(" ")}`.toLowerCase();
         if (!haystack.includes(query)) {
           return false;
         }
