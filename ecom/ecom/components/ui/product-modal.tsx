@@ -172,6 +172,22 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
                 </div>
               </div>
             ))}
+            {/* Brand Logo (Under Thumbnails) */}
+            {product.brand_logo_url && (
+              <div className="flex justify-center mt-4 w-full">
+                <a
+                  href={product.brand ? `/products?search=${encodeURIComponent(product.brand)}` : '#'}
+                  className={`block h-12 w-full relative transition ${product.brand ? 'hover:opacity-80 cursor-pointer' : 'cursor-default pointer-events-none'}`}
+                  title={product.brand || "Marque"}
+                >
+                  <img
+                    src={product.brand_logo_url}
+                    alt={product.brand || "Logo de la marque"}
+                    className="h-full w-full object-contain"
+                  />
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Main image and Logo wrapper */}
@@ -185,22 +201,6 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
                 priority
               />
             </div>
-            {/* Brand Logo (Left Side) */}
-            {product.brand_logo_url && (
-              <div className="flex justify-start px-2 mt-2">
-                <a
-                  href={product.brand ? `/products?search=${encodeURIComponent(product.brand)}` : '#'}
-                  className={`block h-12 w-24 relative transition ${product.brand ? 'hover:opacity-80 cursor-pointer' : 'cursor-default pointer-events-none'}`}
-                  title={product.brand || "Marque"}
-                >
-                  <img
-                    src={product.brand_logo_url}
-                    alt={product.brand || "Logo de la marque"}
-                    className="h-full w-full object-contain"
-                  />
-                </a>
-              </div>
-            )}
           </div>
         </div>
 
