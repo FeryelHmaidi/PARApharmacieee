@@ -126,6 +126,7 @@ const mapToGridProduct = (product: StorefrontProduct): GridProduct => ({
   title: product.name,
   subtitle: product.sku,
   brand: product.brand ?? null,
+  brand_logo_url: product.brand_logo_url ?? null,
   sizes: product.variants.map((variant) => ({
     variantId: variant.id,
     size: variantSizeLabel(variant),

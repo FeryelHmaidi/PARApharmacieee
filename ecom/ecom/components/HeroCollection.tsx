@@ -29,6 +29,8 @@ type HeroProduct = {
   description?: string | null;
   image: string | null;
   images: string[];
+  brand?: string | null;
+  brand_logo_url?: string | null;
   sizes: Array<{
     variantId?: string;
     size: string;
@@ -95,7 +97,7 @@ export default function HeroCollection() {
       const { data, error: queryError } = await supabase
         .from("products")
         .select(
-          `id, name, description, best_seller,
+          `id, name, description, best_seller, brand, brand_logo_url,
            product_variants (*),
            product_photos (*)
           `
@@ -131,6 +133,8 @@ export default function HeroCollection() {
           title: record.name,
           description: record.description,
           image: primaryPhoto ?? fallbackPhoto,
+          brand: record.brand ?? null,
+          brand_logo_url: record.brand_logo_url ?? null,
           images: photos
             .map((photo) => photo.url)
             .filter((url): url is string => Boolean(url)),
@@ -270,6 +274,8 @@ export default function HeroCollection() {
               selectedProduct.images?.[0] ||
               "/fallback-image.jpg",
             images: selectedProduct.images,
+            brand: selectedProduct.brand,
+            brand_logo_url: selectedProduct.brand_logo_url,
             description: selectedProduct.description ?? undefined,
           }}
         />

@@ -63,6 +63,8 @@ type ModalProduct = {
   }[];
   image: string;
   images?: string[];
+  brand?: string;
+  brand_logo_url?: string;
   description?: string;
 };
 
@@ -341,7 +343,7 @@ export default function Navbar() {
       const { data, error } = await supabase
         .from("products")
         .select(
-          `id, name, description,
+          `id, name, description, brand, brand_logo_url,
            product_variants (id, price, size_value, size_unit),
            product_photos (url, position)`
         )
@@ -388,6 +390,8 @@ export default function Navbar() {
         sizes: modalSizes,
         image: heroImage,
         images: orderedImages.length ? orderedImages : undefined,
+        brand: data.brand ?? undefined,
+        brand_logo_url: data.brand_logo_url ?? undefined,
         description: data.description ?? undefined,
       } satisfies ModalProduct;
     },

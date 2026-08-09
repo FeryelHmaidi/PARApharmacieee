@@ -23,6 +23,7 @@ export type Product = {
   image?: string | null;
   images?: string[];
   brand?: string | null;
+  brand_logo_url?: string | null;
   description?: string;
   ratings?: number;
   reviews?: number;
@@ -213,6 +214,7 @@ const ProductGrid: React.FC<Props> = ({
             image: selectedProduct.image || "/fallback-image.jpg",
             images: selectedProduct.images,
             brand: selectedProduct.brand,
+            brand_logo_url: selectedProduct.brand_logo_url,
             description: selectedProduct.description,
           }}
         />
