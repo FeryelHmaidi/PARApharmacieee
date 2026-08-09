@@ -185,34 +185,36 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
                 priority
               />
             </div>
-          </div>
-        </div>
-
-        {/* Product details - below images when stacked (small screens), right when side-by-side (lg+) */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {/* Brand Logo or Text */}
-          {(product.brand_logo_url || product.brand) && (
-            <div className="mt-2 sm:mt-4 mb-1 flex items-center">
-              {product.brand_logo_url ? (
+            {/* Brand Logo (Left Side) */}
+            {product.brand_logo_url && (
+              <div className="flex justify-start px-2 mt-2">
                 <a
                   href={product.brand ? `/products?search=${encodeURIComponent(product.brand)}` : '#'}
-                  className={`block h-10 w-24 relative transition ${product.brand ? 'hover:opacity-80 cursor-pointer' : 'cursor-default pointer-events-none'}`}
+                  className={`block h-12 w-24 relative transition ${product.brand ? 'hover:opacity-80 cursor-pointer' : 'cursor-default pointer-events-none'}`}
                   title={product.brand || "Marque"}
                 >
                   <img
                     src={product.brand_logo_url}
                     alt={product.brand || "Logo de la marque"}
-                    className="h-full w-full object-contain object-left"
+                    className="h-full w-full object-contain"
                   />
                 </a>
-              ) : (
-                <a
-                  href={`/products?search=${encodeURIComponent(product.brand || '')}`}
-                  className="text-sm font-semibold text-gray-500 hover:text-blue-600 hover:underline cursor-pointer"
-                >
-                  {product.brand}
-                </a>
-              )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Product details - below images when stacked (small screens), right when side-by-side (lg+) */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {/* Brand Text (Fallback) */}
+          {product.brand && !product.brand_logo_url && (
+            <div className="mt-2 sm:mt-4 mb-1">
+              <a
+                href={`/products?search=${encodeURIComponent(product.brand)}`}
+                className="text-sm font-semibold text-gray-500 hover:text-blue-600 hover:underline cursor-pointer"
+              >
+                {product.brand}
+              </a>
             </div>
           )}
           <h2 className="text-lg font-bold mt-1 sm:text-xl md:text-2xl">{product.title}</h2>
