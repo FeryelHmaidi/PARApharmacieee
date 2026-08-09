@@ -58,6 +58,8 @@ const mapProductRecordToGridProduct = (
     id: record.id,
     title: record.name,
     subtitle: record.sku,
+    brand: record.brand ?? null,
+    brand_logo_url: record.brand_logo_url ?? null,
     sizes:
       variants.map((variant) => ({
         variantId: variant.id,
@@ -99,7 +101,7 @@ const HeroCatagoriesList = () => {
         supabase
           .from("products")
           .select(
-            `id, name, description, sku, status, best_seller,
+            `id, name, description, sku, status, best_seller, brand, brand_logo_url,
              product_variants (*),
              product_photos (*),
              product_tags (
