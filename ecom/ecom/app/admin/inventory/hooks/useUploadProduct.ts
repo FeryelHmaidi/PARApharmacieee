@@ -30,6 +30,7 @@ export type UploadPayload = {
   variants: VariantDraft[];
   photos?: File[];
   tagIds?: string[];
+  brandLogo?: File;
 };
 
 export function useUploadProduct() {
@@ -134,6 +135,31 @@ export function useUploadProduct() {
             });
 
           if (photoInsertErr) throw new Error(photoInsertErr.message);
+        }
+      }
+
+      // 4) upload brand logo (if any)
+      if (payload.brandLogo) {
+        const f = payload.brandLogo;
+        const fileName = f.name.replace(/\s+/g, "-");
+        const path = `${productId}/brand-logo-${Date.now()}-${fileName}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from("product-photos")
+          .upload(path, f, { upsert: false });
+
+        if (!uploadErr) {
+          const publicUrlResp = await supabase.storage
+            .from("product-photos")
+            .getPublicUrl(path);
+
+          const publicUrl = publicUrlResp?.data?.publicUrl;
+          if (publicUrl) {
+            await supabase
+              .from("products")
+              .update({ brand_logo_url: publicUrl })
+              .eq("id", productId);
+          }
         }
       }
 

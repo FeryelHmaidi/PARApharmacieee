@@ -156,10 +156,14 @@ export default function ProductUploadSheet({
 
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [brandLogoFile, setBrandLogoFile] = useState<File | null>(null);
+  const [brandLogoPreview, setBrandLogoPreview] = useState<string | null>(null);
+  const [removedBrandLogo, setRemovedBrandLogo] = useState(false);
   const [existingPhotos, setExistingPhotos] =
     useState<ExistingPhotoState[]>(buildInitialPhotos);
   const [removedVariantIds, setRemovedVariantIds] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const brandLogoRef = useRef<HTMLInputElement | null>(null);
 
   const uploadMutation = useUploadProduct();
   const uploadProductAsync = uploadMutation.mutateAsync.bind(uploadMutation);
@@ -352,6 +356,28 @@ export default function ProductUploadSheet({
     updatePhotoErrorBounds(keptExisting + next.length);
   };
 
+  const onBrandLogoFile = (selected: FileList | null) => {
+    if (!selected || selected.length === 0) return;
+    const file = selected[0];
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Brand logo must be smaller than 5 MB.");
+      return;
+    }
+    
+    setBrandLogoFile(file);
+    if (brandLogoPreview) URL.revokeObjectURL(brandLogoPreview);
+    setBrandLogoPreview(URL.createObjectURL(file));
+    setRemovedBrandLogo(false);
+  };
+
+  const removeBrandLogoFile = () => {
+    setBrandLogoFile(null);
+    if (brandLogoPreview) URL.revokeObjectURL(brandLogoPreview);
+    setBrandLogoPreview(null);
+    if (brandLogoRef.current) brandLogoRef.current.value = "";
+    setRemovedBrandLogo(true);
+  };
+
   const toggleExistingPhoto = (photoId: string) => {
     if (!photoId) return;
 
@@ -393,7 +419,14 @@ export default function ProductUploadSheet({
     setFiles([]);
     previews.forEach((u) => URL.revokeObjectURL(u));
     setPreviews([]);
+    
+    setBrandLogoFile(null);
+    if (brandLogoPreview) URL.revokeObjectURL(brandLogoPreview);
+    setBrandLogoPreview(null);
+    setRemovedBrandLogo(false);
+
     if (inputRef.current) inputRef.current.value = "";
+    if (brandLogoRef.current) brandLogoRef.current.value = "";
     setErrors({});
     setNewTagName("");
   };
@@ -555,6 +588,8 @@ export default function ProductUploadSheet({
           nextPhotoPositionStart: highestPosition + 1,
           tagIds: uniqueSelectedTagIds,
           previousTagIds: initialTagIds,
+          brandLogo: brandLogoFile ?? undefined,
+          removedBrandLogo,
         });
         resetForm(initialProduct ?? null);
         setOpen(false);
@@ -574,6 +609,7 @@ export default function ProductUploadSheet({
         ),
         photos: files,
         tagIds: uniqueSelectedTagIds,
+        brandLogo: brandLogoFile ?? undefined,
       });
       resetForm();
       setOpen(false);
@@ -792,14 +828,64 @@ export default function ProductUploadSheet({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="product-brand">Marque</Label>
-              <Input
-                id="product-brand"
-                placeholder="ex. SVR, La Roche-Posay..."
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="product-brand">Marque (Texte)</Label>
+                <Input
+                  id="product-brand"
+                  placeholder="ex. SVR, La Roche-Posay..."
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label>Logo de la marque (Optionnel)</Label>
+                <div className="flex items-center gap-4">
+                  <label
+                    htmlFor="brand-logo-input"
+                    className="flex h-10 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <Camera className="mr-2 h-4 w-4 text-gray-600" />
+                    Upload Logo
+                    <input
+                      ref={brandLogoRef}
+                      id="brand-logo-input"
+                      className="hidden"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => onBrandLogoFile(e.target.files)}
+                    />
+                  </label>
+                  {brandLogoPreview && !removedBrandLogo ? (
+                    <div className="relative h-10 w-20 rounded border bg-gray-50 overflow-hidden">
+                      <img src={brandLogoPreview} alt="Brand Logo Preview" className="h-full w-full object-contain" />
+                      <button
+                        type="button"
+                        onClick={removeBrandLogoFile}
+                        className="absolute right-0 top-0 rounded-bl bg-white/90 p-0.5 shadow-sm hover:bg-white"
+                        aria-label="Remove logo"
+                      >
+                        <Trash2 className="h-3 w-3 text-red-500" />
+                      </button>
+                    </div>
+                  ) : initialProduct?.brand_logo_url && !removedBrandLogo ? (
+                    <div className="relative h-10 w-20 rounded border bg-gray-50 overflow-hidden">
+                      <img src={initialProduct.brand_logo_url} alt="Brand Logo" className="h-full w-full object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => setRemovedBrandLogo(true)}
+                        className="absolute right-0 top-0 rounded-bl bg-white/90 p-0.5 shadow-sm hover:bg-white"
+                        aria-label="Remove logo"
+                      >
+                        <Trash2 className="h-3 w-3 text-red-500" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">Aucun logo</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 

@@ -173,22 +173,41 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
             ))}
           </div>
 
-          {/* Main image */}
-          <div className="relative flex flex-1 items-center justify-center rounded-lg bg-gray-50 overflow-hidden min-h-[180px] sm:min-h-[220px] lg:min-h-[240px]">
-            <Image
-              src={productImages[selectedImage]}
-              alt={product.title}
-              fill
-              className="object-contain"
-              priority
-            />
+          {/* Main image and Logo wrapper */}
+          <div className="flex flex-1 flex-col gap-4">
+            <div className="relative flex flex-1 items-center justify-center rounded-lg bg-gray-50 overflow-hidden min-h-[180px] sm:min-h-[220px] lg:min-h-[240px]">
+              <Image
+                src={productImages[selectedImage]}
+                alt={product.title}
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            {/* Brand Logo */}
+            {product.brand_logo_url && product.brand && (
+              <div className="flex justify-center mt-2">
+                <a
+                  href={`/products?search=${encodeURIComponent(product.brand)}`}
+                  className="block h-12 w-24 relative hover:opacity-80 transition"
+                  title={product.brand}
+                >
+                  <img
+                    src={product.brand_logo_url}
+                    alt={product.brand}
+                    className="h-full w-full object-contain"
+                  />
+                </a>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Product details - below images when stacked (small screens), right when side-by-side (lg+) */}
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6 lg:p-8">
           {/* Title and Brand */}
-          {product.brand && (
+          {/* Title and Brand (Fallback) */}
+          {product.brand && !product.brand_logo_url && (
             <div className="mt-2 sm:mt-4">
               <a
                 href={`/products?search=${encodeURIComponent(product.brand)}`}

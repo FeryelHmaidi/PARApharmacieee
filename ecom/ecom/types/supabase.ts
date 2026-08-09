@@ -398,6 +398,7 @@ export type Database = {
         Row: {
           best_seller: boolean
           brand: string | null
+          brand_logo_url: string | null
           created_at: string
           deleted_at: string | null
           description: string | null
@@ -410,6 +411,7 @@ export type Database = {
         Insert: {
           best_seller?: boolean
           brand?: string | null
+          brand_logo_url?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null
@@ -422,6 +424,7 @@ export type Database = {
         Update: {
           best_seller?: boolean
           brand?: string | null
+          brand_logo_url?: string | null
           created_at?: string
           deleted_at?: string | null
           description?: string | null

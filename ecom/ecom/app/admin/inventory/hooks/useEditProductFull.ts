@@ -53,6 +53,8 @@ type EditProductPayload = {
   nextPhotoPositionStart: number;
   tagIds: string[];
   previousTagIds: string[];
+  brandLogo?: File;
+  removedBrandLogo?: boolean;
 };
 
 type EditProductResult = { productId: string };
@@ -78,6 +80,8 @@ export function useEditProductFull() {
         nextPhotoPositionStart,
         tagIds,
         previousTagIds,
+        brandLogo,
+        removedBrandLogo,
       } = payload;
 
       const { error: productError } = await supabase
@@ -229,6 +233,37 @@ export function useEditProductFull() {
           .eq("product_id", productId)
           .in("tag_id", tagsToRemove);
         if (removeTagError) throw new Error(removeTagError.message);
+      }
+
+      if (removedBrandLogo) {
+        await supabase
+          .from("products")
+          .update({ brand_logo_url: null })
+          .eq("id", productId);
+      }
+
+      if (brandLogo) {
+        const file = brandLogo;
+        const sanitizedName = file.name.replace(/\s+/g, "-");
+        const path = `${productId}/brand-logo-${Date.now()}-${sanitizedName}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from(PRODUCT_PHOTO_BUCKET)
+          .upload(path, file, { upsert: false });
+
+        if (!uploadErr) {
+          const publicUrlResp = await supabase.storage
+            .from(PRODUCT_PHOTO_BUCKET)
+            .getPublicUrl(path);
+
+          const publicUrl = publicUrlResp?.data?.publicUrl;
+          if (publicUrl) {
+            await supabase
+              .from("products")
+              .update({ brand_logo_url: publicUrl })
+              .eq("id", productId);
+          }
+        }
       }
 
       return { productId };
