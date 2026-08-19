@@ -131,7 +131,7 @@ const HeroCatagoriesList = () => {
         return;
       }
 
-      const typedProducts = (productData ?? []) as ProductWithRelations[];
+      const typedProducts = (productData ?? []) as unknown as ProductWithRelations[];
       const mappedProducts = typedProducts
         .map(mapProductRecordToGridProduct)
         .filter((product) => product.sizes.length > 0 || product.image);
