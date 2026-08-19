@@ -14,7 +14,12 @@ const dateFormatter = new Intl.DateTimeFormat("fr-FR", {
 });
 
 type OrderRow = Database["public"]["Tables"]["orders"]["Row"];
-type OrderItemRow = Database["public"]["Tables"]["order_items"]["Row"];
+type OrderItemRow = Database["public"]["Tables"]["order_items"]["Row"] & {
+  products?: {
+    name: string;
+    product_photos?: { url: string }[];
+  } | null;
+};
 
 type OrderWithItems = OrderRow & {
   order_items: OrderItemRow[] | null;
@@ -69,7 +74,7 @@ const OrdersPage = () => {
 
         const { data, error } = await supabase
           .from("orders")
-          .select("*, order_items (*)")
+          .select("*, order_items (*, products (name, product_photos (url)))")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
 
@@ -168,27 +173,36 @@ const OrdersPage = () => {
 
                   {orderItems.length > 0 && (
                     <div className="border rounded-xl divide-y">
-                      {orderItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="p-4 flex justify-between text-sm"
-                        >
-                          <div>
-                            <p className="font-medium">
-                              Variante #{item.variant_id}
-                            </p>
-                            <p className="text-gray-500">
-                              Quantité : {item.quantity}
-                            </p>
+                      {orderItems.map((item) => {
+                        const productName = item.products?.name ?? "Produit inconnu";
+                        const productPhoto = item.products?.product_photos?.[0]?.url ?? "/fallback-image.jpg";
+                        // Construct public URL if necessary, or assume it's already public
+                        const photoUrl = productPhoto.startsWith("http") 
+                          ? productPhoto 
+                          : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-photos/${productPhoto.replace(/^\/+/, "")}`;
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="p-4 flex items-center gap-4 text-sm"
+                          >
+                            <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 shrink-0">
+                              <img src={photoUrl} alt={productName} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900 line-clamp-1">
+                                {productName}
+                              </p>
+                              <p className="text-gray-500">
+                                Quantité : {item.quantity}
+                              </p>
+                            </div>
+                            <div className="font-bold text-right shrink-0">
+                              {(item.price_at_purchase * item.quantity).toFixed(2).replace('.', ',')} Dt
+                            </div>
                           </div>
-                          <span className="font-semibold">
-                            {(item.price_at_purchase * item.quantity).toFixed(
-                              2
-                            ).replace('.', ',')}{" "}
-                            Dt
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

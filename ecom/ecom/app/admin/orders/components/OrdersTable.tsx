@@ -220,6 +220,11 @@ export function OrdersTable({
             </p>
           </TableCell>
           <TableCell>
+            <div className="text-sm font-medium">
+              {order.delivery_company || "—"}
+            </div>
+          </TableCell>
+          <TableCell>
             <Badge variant="secondary" className="capitalize">
               {paymentStatus.replace("_", " ")}
             </Badge>
@@ -258,7 +263,7 @@ export function OrdersTable({
               <DropdownMenuContent align="end" className="w-44">
                 <ManageOrderSheet
                   order={order}
-                  trigger={<DropdownMenuItem>Edit order</DropdownMenuItem>}
+                  trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Edit order</DropdownMenuItem>}
                 />
                 <DropdownMenuItem
                   onClick={() => navigator.clipboard.writeText(order.id)}
@@ -330,6 +335,7 @@ export function OrdersTable({
               <TableHead>Customer</TableHead>
               <TableHead>Total</TableHead>
               <TableHead>Payment</TableHead>
+              <TableHead>Livraison</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>

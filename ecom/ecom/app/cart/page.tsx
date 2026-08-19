@@ -42,6 +42,13 @@ const CartPage = () => {
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethod>("cash_on_delivery");
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [placedOrderInfo, setPlacedOrderInfo] = useState<{
+    form: AddressFormState;
+    items: typeof items;
+    totals: ReturnType<typeof selectCartTotals>;
+    paymentMethod: PaymentMethod;
+    orderId?: string;
+  } | null>(null);
   const profilePrefilled = useRef(false);
   const { data: profileData, isLoading: profileLoading } = useCheckoutProfile();
   const placeOrder = usePlaceOrder();
@@ -102,16 +109,25 @@ const CartPage = () => {
     }
 
     try {
-      await placeOrder.mutateAsync({
+      const response = await placeOrder.mutateAsync({
         items,
         totals,
         paymentMethod,
         form,
       });
 
+      // Save order info to display success page
+      setPlacedOrderInfo({
+        form,
+        items: [...items], // copy to preserve after clear
+        totals: { ...totals },
+        paymentMethod,
+        orderId: (response as any)?.id // if mutation returns the order ID
+      });
+
       clearCart();
       toast.success("Commande passée avec succès !");
-      router.push("/orders");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       if (error instanceof CheckoutError) {
         if (error.code === "AUTH_REQUIRED") {
@@ -132,6 +148,84 @@ const CartPage = () => {
   };
 
   const renderContent = () => {
+    if (placedOrderInfo) {
+      return (
+        <main className="mx-auto w-[85%] flex min-h-[60vh] flex-col gap-8 py-16 items-center">
+          <div className="bg-white border rounded-2xl p-8 max-w-xl w-full shadow-sm text-sm">
+            <div className="text-center mb-8 space-y-2">
+              <h2 className="text-2xl font-bold">Thank you for your order</h2>
+              <p className="text-gray-500">
+                We have received your order and it is being processed.
+              </p>
+            </div>
+
+            <div className="mb-8">
+              <h3 className="font-semibold text-lg border-b pb-2 mb-4">
+                Customer Information
+              </h3>
+              <div className="text-gray-600 space-y-1">
+                <p>{placedOrderInfo.form.fullName}</p>
+                <p>{placedOrderInfo.form.address}</p>
+                <p>{placedOrderInfo.form.phone}</p>
+                <p>{placedOrderInfo.form.city}</p>
+                {placedOrderInfo.form.postalCode && (
+                  <p>{placedOrderInfo.form.postalCode}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <h3 className="font-semibold text-lg border-b pb-2 mb-4">
+                Order Details
+              </h3>
+              <div className="space-y-4">
+                {placedOrderInfo.items.map((item) => (
+                  <div key={item.id} className="flex gap-4">
+                    <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden relative shrink-0">
+                      {item.image ? (
+                        <Image src={item.image} alt={item.title} fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">🛍️</div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold line-clamp-1">{item.title}</p>
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>Quantity : {item.quantity}</span>
+                        <span>Unit price : {formatPrice(item.unitPrice)}</span>
+                        <span>Total : {formatPrice(item.unitPrice * item.quantity)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2 border-t pt-4">
+              <div className="flex justify-between font-medium">
+                <span>Subtotal</span>
+                <span>{formatPrice(placedOrderInfo.totals.subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-gray-500">
+                <span>Shipping</span>
+                <span>0.00 DT</span>
+              </div>
+              <div className="flex justify-between text-red-600 font-bold text-lg pt-2">
+                <span>Total</span>
+                <span>{formatPrice(placedOrderInfo.totals.subtotal)}</span>
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <Button asChild className="w-full bg-slate-800 text-white hover:bg-slate-900">
+                <Link href="/">Return to the Home page</Link>
+              </Button>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
     if (!items.length && !loadingProfile) {
       return (
         <main className="mx-auto w-[85%] flex min-h-[60vh] flex-col gap-8 py-16">

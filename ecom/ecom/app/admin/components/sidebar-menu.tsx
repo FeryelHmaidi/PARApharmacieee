@@ -51,6 +51,10 @@ const items = [
         title: "Marques",
         url: "/admin/inventory/brands",
       },
+      {
+        title: "Sociétés de livraison",
+        url: "/admin/inventory/delivery-companies",
+      },
     ],
   },
 ];

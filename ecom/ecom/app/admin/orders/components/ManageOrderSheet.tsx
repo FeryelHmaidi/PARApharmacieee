@@ -140,6 +140,7 @@ const buildInitialValues = (order?: AdminOrder | null): OrderFormValues => {
     paymentMethod: order?.payment_method ?? "cod",
     totalAmount: order?.total_amount ?? computedTotal,
     currency: order?.currency ?? "TND",
+    deliveryCompany: order?.delivery_company ?? "",
     notes: order?.notes ?? guestInfo?.notes ?? "",
     items: mappedItems,
   };
@@ -158,9 +159,28 @@ export function ManageOrderSheet({
 }: ManageOrderSheetProps) {
   const [open, setOpen] = useState(false);
   const upsertOrder = useUpsertOrder();
+  const [deliveryCompanies, setDeliveryCompanies] = useState<{id: string, name: string}[]>([]);
   const [form, setForm] = useState<OrderFormValues>(() =>
     buildInitialValues(order)
   );
+
+  useEffect(() => {
+    if (open) {
+      setForm(buildInitialValues(order));
+      setProductQuery("");
+    }
+  }, [open, order]);
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const { data } = await supabase.from("delivery_companies").select("*").order("name");
+      if (data) setDeliveryCompanies(data);
+    };
+    fetchCompanies();
+  }, []);
+
   const [productQuery, setProductQuery] = useState("");
   const {
     data: products = [],
@@ -662,6 +682,27 @@ export function ManageOrderSheet({
                     {STATUS_OPTIONS.map((status) => (
                       <SelectItem key={status} value={status}>
                         {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Société de livraison</Label>
+                <Select
+                  value={form.deliveryCompany || "none"}
+                  onValueChange={(value) =>
+                    handleChange("deliveryCompany", value === "none" ? null : value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucune</SelectItem>
+                    {deliveryCompanies.map((c) => (
+                      <SelectItem key={c.id} value={c.name}>
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

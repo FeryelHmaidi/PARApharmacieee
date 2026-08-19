@@ -71,6 +71,23 @@ export type Database = {
           name?: string
         }
       }
+      delivery_companies: {
+        Row: {
+          id: string
+          name: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          created_at?: string
+        }
+      }
       cart_session_items: {
         Row: {
           created_at: string
@@ -275,6 +292,7 @@ export type Database = {
         Row: {
           created_at: string | null
           currency: string | null
+          delivery_company: string | null
           guest_info: Json | null
           id: string
           notes: string | null
@@ -291,6 +309,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           currency?: string | null
+          delivery_company?: string | null
           guest_info?: Json | null
           id?: string
           notes?: string | null
@@ -307,6 +326,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           currency?: string | null
+          delivery_company?: string | null
           guest_info?: Json | null
           id?: string
           notes?: string | null

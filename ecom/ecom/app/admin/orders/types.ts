@@ -48,6 +48,7 @@ export type OrderFormValues = {
   paymentMethod: OrderRow["payment_method"];
   totalAmount: number;
   currency: NonNullable<OrderRow["currency"]>;
+  deliveryCompany?: string | null;
   notes?: string;
   items: OrderItemInput[];
 };

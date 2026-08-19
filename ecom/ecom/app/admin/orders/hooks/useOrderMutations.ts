@@ -34,6 +34,7 @@ const mapFormToDatabase = (values: OrderFormValues) => {
     payment_status: paymentStatus,
     status: values.status,
     notes: values.notes ?? null,
+    delivery_company: values.deliveryCompany ?? null,
     guest_info: {
       full_name: values.customerName,
       postal_code: values.postalCode,
