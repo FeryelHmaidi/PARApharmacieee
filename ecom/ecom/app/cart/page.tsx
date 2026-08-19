@@ -183,7 +183,7 @@ const CartPage = () => {
                   <div key={item.id} className="flex gap-4">
                     <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden relative shrink-0">
                       {item.image ? (
-                        <Image src={item.image} alt={item.title} fill className="object-cover" />
+                        <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">🛍️</div>
                       )}
@@ -263,11 +263,10 @@ const CartPage = () => {
                   <div key={item.id} className="py-4 flex gap-4">
                     <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden relative flex-shrink-0">
                       {item.image ? (
-                        <Image
+                        <img
                           src={item.image}
                           alt={item.title}
-                          fill
-                          className="object-cover"
+                          className="w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-2xl">
