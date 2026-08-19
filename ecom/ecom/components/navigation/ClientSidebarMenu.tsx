@@ -35,73 +35,60 @@ export default function ClientSidebarMenu({ onClose }: { onClose: () => void }) 
   };
 
   return (
-    <div className="flex flex-col gap-4 text-sm mt-4">
-      <Link href="/products" onClick={onClose} className="font-semibold text-base py-2 hover:text-yellow-600 transition-colors">
+    <div className="flex flex-col gap-6 text-sm mt-6 pb-20">
+      <Link href="/products" onClick={onClose} className="font-bold text-base hover:text-yellow-600 transition-colors uppercase tracking-wide">
         Tous les produits
       </Link>
 
-      <div className="border-t pt-4">
-        <button 
-          onClick={() => toggleSection("categories")}
-          className="flex justify-between items-center w-full font-semibold text-base py-2 hover:text-yellow-600 transition-colors"
-        >
-          Catégories
-          <ChevronDown className={`w-4 h-4 transition-transform ${openSection === "categories" ? "rotate-180" : ""}`} />
-        </button>
-        {openSection === "categories" && (
-          <ul className="pl-4 mt-2 flex flex-col gap-3 max-h-64 overflow-y-auto pr-2">
-            {categories.map((cat) => (
-              <li key={cat.id}>
-                <Link 
-                  href={`/products?category=${encodeURIComponent(cat.name)}`} 
-                  onClick={onClose}
-                  className="block font-medium text-gray-800 hover:text-yellow-600 mb-1"
-                >
-                  {cat.name}
-                </Link>
-                {/* Subcategories */}
-                <ul className="pl-3 mt-1 flex flex-col gap-1 border-l-2 border-yellow-100 ml-1">
-                  {subcategories.filter(s => s.category_id === cat.id).map(sub => (
+      <div className="flex flex-col gap-6">
+        {categories.map((cat) => {
+          const catSubcats = subcategories.filter(s => s.category_id === cat.id);
+          return (
+            <div key={cat.id} className="border-b pb-4 last:border-b-0">
+              <Link 
+                href={`/products?category=${encodeURIComponent(cat.name)}`} 
+                onClick={onClose}
+                className="block font-bold text-gray-800 uppercase tracking-widest text-xs mb-3 hover:text-yellow-600"
+              >
+                {cat.name}
+              </Link>
+              {catSubcats.length > 0 && (
+                <ul className="flex flex-col gap-2">
+                  {catSubcats.map(sub => (
                     <li key={sub.id}>
                       <Link 
                         href={`/products?subcategory=${encodeURIComponent(sub.name)}`} 
                         onClick={onClose}
-                        className="text-gray-500 hover:text-yellow-600 text-xs"
+                        className="text-gray-500 hover:text-yellow-600 transition-colors font-medium text-sm"
                       >
                         {sub.name}
                       </Link>
                     </li>
                   ))}
                 </ul>
-              </li>
-            ))}
-          </ul>
-        )}
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      <div className="border-t pt-4">
-        <button 
-          onClick={() => toggleSection("brands")}
-          className="flex justify-between items-center w-full font-semibold text-base py-2 hover:text-yellow-600 transition-colors"
-        >
-          Marques
-          <ChevronDown className={`w-4 h-4 transition-transform ${openSection === "brands" ? "rotate-180" : ""}`} />
-        </button>
-        {openSection === "brands" && (
-          <ul className="pl-4 mt-2 flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
-            {brands.map((brand) => (
-              <li key={brand.id}>
-                <Link 
-                  href={`/products?brand=${encodeURIComponent(brand.name)}`} 
-                  onClick={onClose}
-                  className="text-gray-700 hover:text-yellow-600"
-                >
-                  {brand.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="border-t pt-6">
+        <h3 className="font-bold text-gray-800 uppercase tracking-widest text-xs mb-3">
+          MARQUES
+        </h3>
+        <ul className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
+          {brands.map((brand) => (
+            <li key={brand.id}>
+              <Link 
+                href={`/products?brand=${encodeURIComponent(brand.name)}`} 
+                onClick={onClose}
+                className="text-gray-500 hover:text-yellow-600 font-medium text-sm"
+              >
+                {brand.name}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

@@ -2,7 +2,9 @@
 
 import React, { useState } from "react";
 import ProductModal from "@/components/ui/product-modal";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ShoppingCart } from "lucide-react";
+import { useCartStore } from "@/hooks/useCartStore";
+import { toast } from "sonner";
 
 export type ProductSize = {
   size: string;
@@ -49,11 +51,43 @@ const ProductGrid: React.FC<Props> = ({
   className = "",
   cardHeight = "420px", // Default height if not provided
 }) => {
+  const addItem = useCartStore((state) => state.addItem);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     onProductClick?.(product);
+  };
+
+  const handleQuickAdd = (e: React.MouseEvent, p: Product) => {
+    e.stopPropagation();
+    if (p.inStock === false) return;
+    if (!p.sizes || p.sizes.length === 0) return;
+    
+    // If only one size, add it directly
+    if (p.sizes.length === 1) {
+      const selectedSize = p.sizes[0];
+      if (!selectedSize.variantId) {
+        toast.error("Cette variante n'est pas disponible");
+        return;
+      }
+      const hasQuantity = typeof selectedSize.quantity === "number" && selectedSize.quantity > 0 && selectedSize.unit;
+      const sizeLabel = hasQuantity ? `${selectedSize.quantity} ${selectedSize.unit}` : selectedSize.size;
+
+      addItem({
+        productId: p.id,
+        variantId: selectedSize.variantId,
+        title: p.title,
+        sizeLabel: sizeLabel,
+        unitPrice: selectedSize.price,
+        quantity: 1,
+        image: p.image || "/fallback-image.jpg",
+      });
+      toast.success("Produit ajouté au panier !");
+    } else {
+      // If multiple sizes, open the modal to let user choose
+      handleProductClick(p);
+    }
   };
 
   // filter by category membership (product.categories includes selectedCategory)
@@ -137,7 +171,7 @@ const ProductGrid: React.FC<Props> = ({
                 )}
               </div>
 
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-4 flex flex-col gap-3">
                 <div className="flex flex-col">
                   <div
                     className={`text-lg font-bold ${
@@ -165,18 +199,14 @@ const ProductGrid: React.FC<Props> = ({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleProductClick(p);
-                    }}
-                    disabled={p.inStock === false}
-                    className="px-3 py-1 rounded-md bg-gray-100 text-sm font-medium transition disabled:opacity-70 disabled:cursor-not-allowed disabled:text-gray-400 disabled:bg-gray-200 hover:bg-yellow-600 hover:text-white"
-                  >
-                    {p.inStock === false ? "Alerter" : "Voir"}
-                  </button>
-                </div>
+                <button
+                  onClick={(e) => handleQuickAdd(e, p)}
+                  disabled={p.inStock === false}
+                  className="w-full py-2 flex items-center justify-center gap-2 rounded-md bg-white border border-gray-300 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-gray-100"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Ajouter au panier
+                </button>
               </div>
             </div>
           </article>

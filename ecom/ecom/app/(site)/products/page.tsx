@@ -8,6 +8,7 @@ import ProductFilters from "@/components/products/ProductFilters";
 import ProductSearch from "@/components/products/ProductSearch";
 import ProductHeader from "@/components/products/ProductHeader";
 import type { Database } from "@/types/supabase";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type {
   PhotoRow,
   ProductWithRelations,
@@ -166,6 +167,7 @@ const ProductPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] =
     useState<SliderCategory | null>(null);
   const [search, setSearch] = useState("");
+  const [sortOption, setSortOption] = useState("pertinence");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -517,10 +519,43 @@ const ProductPage: React.FC = () => {
     selectedBrands,
   ]);
 
-  const gridProducts = useMemo(
-    () => filteredProducts.map((product) => mapToGridProduct(product)),
-    [filteredProducts]
-  );
+  const gridProducts = useMemo(() => {
+    let sorted = [...filteredProducts];
+    switch (sortOption) {
+      case "sales_desc":
+        sorted.sort((a, b) => {
+          if (a.best_seller && !b.best_seller) return -1;
+          if (!a.best_seller && b.best_seller) return 1;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+        break;
+      case "name_asc":
+        sorted.sort((a, b) => a.name.localeCompare(b.name, "fr"));
+        break;
+      case "name_desc":
+        sorted.sort((a, b) => b.name.localeCompare(a.name, "fr"));
+        break;
+      case "price_asc":
+        sorted.sort((a, b) => {
+          const priceA = a.min_price ?? Number.POSITIVE_INFINITY;
+          const priceB = b.min_price ?? Number.POSITIVE_INFINITY;
+          return priceA - priceB;
+        });
+        break;
+      case "price_desc":
+        sorted.sort((a, b) => {
+          const priceA = a.max_price ?? Number.NEGATIVE_INFINITY;
+          const priceB = b.max_price ?? Number.NEGATIVE_INFINITY;
+          return priceB - priceA;
+        });
+        break;
+      case "pertinence":
+      default:
+        // No sorting or default creation date
+        break;
+    }
+    return sorted.map((product) => mapToGridProduct(product));
+  }, [filteredProducts, sortOption]);
 
   return (
     <main className="min-h-screen mx-auto w-[85%] flex flex-col gap-20 mt-28">
@@ -567,11 +602,30 @@ const ProductPage: React.FC = () => {
         />
 
         <section className="flex-1">
-          <ProductSearch
-            search={search}
-            onSearchChange={setSearch}
-            resultsCount={gridProducts.length}
-          />
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <ProductSearch
+              search={search}
+              onSearchChange={setSearch}
+              resultsCount={gridProducts.length}
+            />
+            
+            <div className="flex items-center gap-2 text-sm text-gray-600 shrink-0">
+              <span className="font-medium whitespace-nowrap">Trier par:</span>
+              <Select value={sortOption} onValueChange={setSortOption}>
+                <SelectTrigger className="w-[200px] bg-white border-gray-200">
+                  <SelectValue placeholder="Pertinence" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pertinence">Pertinence</SelectItem>
+                  <SelectItem value="sales_desc">Ventes, ordre décroissant</SelectItem>
+                  <SelectItem value="name_asc">Nom, A à Z</SelectItem>
+                  <SelectItem value="name_desc">Nom, Z à A</SelectItem>
+                  <SelectItem value="price_asc">Prix, croissant</SelectItem>
+                  <SelectItem value="price_desc">Prix, décroissant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
           {loading ? (
             <div className="py-16 text-center text-gray-500">
