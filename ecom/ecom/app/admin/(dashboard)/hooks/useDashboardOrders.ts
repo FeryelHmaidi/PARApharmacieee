@@ -72,8 +72,8 @@ export const useDashboardOrders = (months = 12) => {
       }
 
       return (data ?? []).map((record) => ({
-        ...record,
-        order_items: (record.order_items ?? []).map((item) => ({
+        ...(record as any),
+        order_items: ((record as any).order_items ?? []).map((item: any) => ({
           ...(item as DashboardOrderItem),
           product: (item as DashboardOrderItem).product ?? null,
         })),
