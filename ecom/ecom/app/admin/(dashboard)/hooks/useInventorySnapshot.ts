@@ -44,7 +44,7 @@ export const useInventorySnapshot = () => {
         throw new Error(error.message);
       }
 
-      return (data ?? []).map((record) => ({
+      return ((data as any[]) ?? []).map((record: any) => ({
         id: record.id,
         name: record.name,
         sku: record.sku,
