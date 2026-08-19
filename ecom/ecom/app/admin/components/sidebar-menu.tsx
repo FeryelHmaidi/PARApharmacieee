@@ -31,7 +31,7 @@ const items = [
     title: "Inventory",
     url: "/admin/inventory",
     icon: Pill,
-    isActive: true, // For collapsible
+    isActive: true,
     items: [
       {
         title: "Produits",
@@ -40,10 +40,12 @@ const items = [
       {
         title: "Catégories",
         url: "/admin/inventory/categories",
-      },
-      {
-        title: "Sous-catégories",
-        url: "/admin/inventory/subcategories",
+        subItems: [
+          {
+            title: "Sous-catégories",
+            url: "/admin/inventory/subcategories",
+          }
+        ]
       },
       {
         title: "Marques",
@@ -109,6 +111,28 @@ export function AdminSidebarMenu() {
                       <span>{subItem.title}</span>
                     </Link>
                   </SidebarMenuSubButton>
+
+                  {/* Render nested subItems (e.g. Sous-catégories) */}
+                  {subItem.subItems && (
+                    <ul className="ml-4 mt-1 flex flex-col gap-1 border-l-2 border-gray-100 pl-2">
+                      {subItem.subItems.map((nested) => (
+                        <li key={nested.title}>
+                          <Link 
+                            href={nested.url}
+                            onClick={handleLinkClick}
+                            className={cn(
+                              "block text-xs py-1.5 px-2 rounded-md transition-colors",
+                              pathname === nested.url 
+                                ? "bg-yellow-50 text-yellow-700 font-medium" 
+                                : "text-gray-500 hover:text-yellow-700 hover:bg-gray-50"
+                            )}
+                          >
+                            {nested.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </SidebarMenuSubItem>
               ))}
             </SidebarMenuSub>

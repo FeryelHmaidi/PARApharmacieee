@@ -126,7 +126,7 @@ export default function ProfileClient({
         updated_at: new Date().toISOString(),
       } satisfies Partial<ProfileRow> & { id: string };
 
-      const { error } = await supabase.from("profiles").upsert(payload);
+      const { error } = await supabase.from("profiles").upsert(payload as any);
 
       if (error) {
         throw error;

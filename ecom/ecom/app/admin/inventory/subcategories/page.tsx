@@ -16,7 +16,7 @@ type Subcategory = {
   id: string;
   name: string;
   category_id: string;
-  categories?: { name: string };
+  categories?: any;
 };
 
 export default function SubcategoriesPage() {
@@ -161,7 +161,7 @@ export default function SubcategoriesPage() {
                     <tr key={subcat.id} className="hover:bg-gray-50">
                       <td className="p-3 font-medium">{subcat.name}</td>
                       <td className="p-3 text-gray-600">
-                        {subcat.categories?.name || <span className="text-red-400">Inconnue</span>}
+                        {(Array.isArray(subcat.categories) ? subcat.categories[0]?.name : subcat.categories?.name) || <span className="text-red-400">Inconnue</span>}
                       </td>
                       <td className="p-3">
                         <Button

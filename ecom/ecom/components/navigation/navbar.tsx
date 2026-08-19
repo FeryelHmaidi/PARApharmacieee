@@ -23,6 +23,7 @@ import {
 } from "../ui/sheet";
 import CartDropdown from "@/components/cart/CartDropdown";
 import ProductModal from "@/components/ui/product-modal";
+import ClientSidebarMenu from "@/components/navigation/ClientSidebarMenu";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Database } from "@/types/supabase";
@@ -30,7 +31,6 @@ import { toast } from "sonner";
 import Image from "next/image";
 
 const NAV_LINKS = [
-  { label: "Nos Produits", href: "/products" },
   { label: "Commandes", href: "/orders" },
 ];
 
@@ -513,7 +513,6 @@ export default function Navbar() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden"
                     aria-label="Ouvrir le menu"
                   >
                     <Menu className="size-5" />
@@ -545,22 +544,26 @@ export default function Navbar() {
                     />
                   </div>
                   <nav className="px-4">
-                    <p className="mb-2 text-xs uppercase tracking-[0.3em] text-gray-500">
-                      Navigation
-                    </p>
-                    <div className="space-y-2">
-                      {NAV_LINKS.map((link) => (
-                        <Button
-                          key={link.href}
-                          variant="ghost"
-                          className="w-full justify-start text-base"
-                          asChild
-                        >
-                          <Link href={link.href} onClick={closeMobileMenu}>
-                            {link.label}
-                          </Link>
-                        </Button>
-                      ))}
+                    <ClientSidebarMenu onClose={closeMobileMenu} />
+                    
+                    <div className="mt-6 pt-4 border-t">
+                      <p className="mb-2 text-xs uppercase tracking-[0.3em] text-gray-500">
+                        Autres
+                      </p>
+                      <div className="space-y-2">
+                        {NAV_LINKS.map((link) => (
+                          <Button
+                            key={link.href}
+                            variant="ghost"
+                            className="w-full justify-start text-base px-0"
+                            asChild
+                          >
+                            <Link href={link.href} onClick={closeMobileMenu}>
+                              {link.label}
+                            </Link>
+                          </Button>
+                        ))}
+                      </div>
                     </div>
                   </nav>
                   <div className="px-4">

@@ -38,6 +38,7 @@ import { useEditProductFull } from "../hooks/useEditProductFull";
 import { useTags } from "../hooks/useTags";
 import { useCreateTag } from "../hooks/useCreateTag";
 import { cn } from "@/lib/utils";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 type SizeUnit = Database["public"]["Enums"]["size_unit"];
 type ProductStatus = Database["public"]["Enums"]["product_status"];

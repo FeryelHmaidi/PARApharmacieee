@@ -170,10 +170,15 @@ const ProductPage: React.FC = () => {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const brandParam = params.get("search") || params.get("brand");
-      if (brandParam) {
-        setSearch(brandParam);
-      }
+      const searchParam = params.get("search");
+      const brandParam = params.get("brand");
+      const catParam = params.get("category");
+      const subcatParam = params.get("subcategory");
+
+      if (searchParam) setSearch(searchParam);
+      if (brandParam) setSelectedBrands([brandParam]);
+      if (catParam) setSelectedCats([catParam]);
+      if (subcatParam) setSelectedSubcats([subcatParam]);
     }
   }, []);
   const [onlyInStock, setOnlyInStock] = useState(false);
