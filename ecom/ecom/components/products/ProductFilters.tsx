@@ -13,12 +13,21 @@ interface ProductFiltersProps {
   selectedSizes: string[];
   availableTags: string[];
   selectedTags: string[];
+  availableCats: string[];
+  selectedCats: string[];
+  availableSubcats: string[];
+  selectedSubcats: string[];
+  availableBrands: string[];
+  selectedBrands: string[];
   onMinPriceChange: (price: number) => void;
   onMaxPriceChange: (price: number) => void;
   onToggleInStock: (value: boolean) => void;
   onToggleBestSeller: (value: boolean) => void;
   onToggleSize: (size: string) => void;
   onToggleTag: (tag: string) => void;
+  onToggleCat: (cat: string) => void;
+  onToggleSubcat: (subcat: string) => void;
+  onToggleBrand: (brand: string) => void;
   onClearAllFilters: () => void;
   formatPrice: (n: number) => string;
 }
@@ -34,12 +43,21 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
   selectedSizes,
   availableTags,
   selectedTags,
+  availableCats,
+  selectedCats,
+  availableSubcats,
+  selectedSubcats,
+  availableBrands,
+  selectedBrands,
   onMinPriceChange,
   onMaxPriceChange,
   onToggleInStock,
   onToggleBestSeller,
   onToggleSize,
   onToggleTag,
+  onToggleCat,
+  onToggleSubcat,
+  onToggleBrand,
   onClearAllFilters,
   formatPrice,
 }) => {
@@ -175,18 +193,101 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
           </div>
         )}
 
-        {/**
-         * Unsupported filters for now: categories, formats, skin types…
-         * Uncomment once the products table stores those metadata.
-         */}
-        {/*
+        {availableCats.length > 0 && (
           <div className="mb-4">
-            <span className="text-sm text-gray-600">Catégories</span>
-            <p className="text-xs text-gray-500">
-              En attente de colonnes dédiées côté base de données.
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">Catégories</span>
+              <span className="text-xs text-gray-500">
+                {selectedCats.length > 0
+                  ? `${selectedCats.length} sélectionné(s)`
+                  : "Toutes"}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {availableCats.map((cat) => {
+                const checked = selectedCats.includes(cat);
+                return (
+                  <button
+                    type="button"
+                    key={cat}
+                    onClick={() => onToggleCat(cat)}
+                    className={`px-3 py-1 rounded-full border text-xs font-medium transition-colors ${
+                      checked
+                        ? "bg-yellow-600 text-white border-yellow-600"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-yellow-300"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        */}
+        )}
+
+        {availableSubcats.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">Sous-catégories</span>
+              <span className="text-xs text-gray-500">
+                {selectedSubcats.length > 0
+                  ? `${selectedSubcats.length} sélectionné(s)`
+                  : "Toutes"}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {availableSubcats.map((subcat) => {
+                const checked = selectedSubcats.includes(subcat);
+                return (
+                  <button
+                    type="button"
+                    key={subcat}
+                    onClick={() => onToggleSubcat(subcat)}
+                    className={`px-3 py-1 rounded-full border text-xs font-medium transition-colors ${
+                      checked
+                        ? "bg-yellow-600 text-white border-yellow-600"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-yellow-300"
+                    }`}
+                  >
+                    {subcat}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {availableBrands.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">Marques</span>
+              <span className="text-xs text-gray-500">
+                {selectedBrands.length > 0
+                  ? `${selectedBrands.length} sélectionné(s)`
+                  : "Toutes"}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {availableBrands.map((brand) => {
+                const checked = selectedBrands.includes(brand);
+                return (
+                  <button
+                    type="button"
+                    key={brand}
+                    onClick={() => onToggleBrand(brand)}
+                    className={`px-3 py-1 rounded-full border text-xs font-medium transition-colors ${
+                      checked
+                        ? "bg-yellow-600 text-white border-yellow-600"
+                        : "bg-white text-gray-700 border-gray-200 hover:border-yellow-300"
+                    }`}
+                  >
+                    {brand}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Clear all */}
         <div className="mt-3">

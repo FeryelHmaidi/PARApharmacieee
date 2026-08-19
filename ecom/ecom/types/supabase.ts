@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      brands: {
+        Row: {
+          brand_logo_url: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          brand_logo_url?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          brand_logo_url?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+      }
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+      }
+      subcategories: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+      }
       cart_session_items: {
         Row: {
           created_at: string

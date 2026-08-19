@@ -165,6 +165,37 @@ export default function ProductUploadSheet({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const brandLogoRef = useRef<HTMLInputElement | null>(null);
 
+  // Dictionaries state
+  const [dictCategories, setDictCategories] = useState<{id: string, name: string}[]>([]);
+  const [dictSubcategories, setDictSubcategories] = useState<{id: string, name: string, category_id: string}[]>([]);
+  const [dictBrands, setDictBrands] = useState<{id: string, name: string, brand_logo_url: string | null}[]>([]);
+  const supabase = useMemo(() => createClientComponentClient(), []);
+
+  useEffect(() => {
+    async function fetchDictionaries() {
+      const [catsRes, subcatsRes, brandsRes] = await Promise.all([
+        supabase.from("categories").select("id, name").order("name"),
+        supabase.from("subcategories").select("id, name, category_id").order("name"),
+        supabase.from("brands").select("id, name, brand_logo_url").order("name"),
+      ]);
+      if (catsRes.data) setDictCategories(catsRes.data);
+      if (subcatsRes.data) setDictSubcategories(subcatsRes.data);
+      if (brandsRes.data) setDictBrands(brandsRes.data);
+    }
+    fetchDictionaries();
+  }, [supabase]);
+
+  // Derived filtered subcategories based on selected category text
+  // Since `category` state holds the name (text), we need to find its ID first
+  const selectedCategoryId = useMemo(() => {
+    return dictCategories.find(c => c.name === category)?.id;
+  }, [category, dictCategories]);
+
+  const filteredSubcategories = useMemo(() => {
+    if (!selectedCategoryId) return dictSubcategories;
+    return dictSubcategories.filter(s => s.category_id === selectedCategoryId);
+  }, [selectedCategoryId, dictSubcategories]);
+
   const uploadMutation = useUploadProduct();
   const uploadProductAsync = uploadMutation.mutateAsync.bind(uploadMutation);
   const editMutation = useEditProductFull();
@@ -810,33 +841,56 @@ export default function ProductUploadSheet({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="product-category">Catégorie</Label>
-                <Input
-                  id="product-category"
-                  placeholder="ex. Visage, Solaire, Soins..."
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                />
+                <Select value={category || undefined} onValueChange={(val) => { setCategory(val); setSubCategory(""); }}>
+                  <SelectTrigger id="product-category">
+                    <SelectValue placeholder="Sélectionnez une catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dictCategories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="product-subcategory">Sous-catégorie</Label>
-                <Input
-                  id="product-subcategory"
-                  placeholder="ex. Crème hydratante, Sérum..."
-                  value={subCategory}
-                  onChange={(e) => setSubCategory(e.target.value)}
-                />
+                <Select value={subCategory || undefined} onValueChange={setSubCategory}>
+                  <SelectTrigger id="product-subcategory" disabled={!category}>
+                    <SelectValue placeholder="Sélectionnez une sous-catégorie" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredSubcategories.map(sub => (
+                      <SelectItem key={sub.id} value={sub.name}>{sub.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="product-brand">Marque (Texte)</Label>
-                <Input
-                  id="product-brand"
-                  placeholder="ex. SVR, La Roche-Posay..."
-                  value={brand}
-                  onChange={(e) => setBrand(e.target.value)}
-                />
+                <Label htmlFor="product-brand">Marque</Label>
+                <Select value={brand || undefined} onValueChange={(val) => {
+                  setBrand(val);
+                  // Automatically set logo if brand has one
+                  const selectedBrand = dictBrands.find(b => b.name === val);
+                  if (selectedBrand && selectedBrand.brand_logo_url && !brandLogoFile) {
+                    // We don't need to auto-upload it since it's already a URL
+                    // But our form expects a File for brandLogo if changed.
+                    // We can just let the system keep the existing product URL or upload a new one.
+                    // Actually, if we just want to reuse the brand's logo, we can let the backend handle it
+                    // or we set it as preview for visual feedback.
+                  }
+                }}>
+                  <SelectTrigger id="product-brand">
+                    <SelectValue placeholder="Sélectionnez une marque" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dictBrands.map(b => (
+                      <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex flex-col gap-2">

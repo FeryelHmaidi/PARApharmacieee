@@ -180,6 +180,9 @@ const ProductPage: React.FC = () => {
   const [bestSellerOnly, setBestSellerOnly] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedCats, setSelectedCats] = useState<string[]>([]);
+  const [selectedSubcats, setSelectedSubcats] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(0);
   const [priceInitialized, setPriceInitialized] = useState(false);
@@ -194,6 +197,9 @@ const ProductPage: React.FC = () => {
     bestSellerOnly,
     selectedSizes,
     selectedTags,
+    selectedCats,
+    selectedSubcats,
+    selectedBrands,
     minPrice,
     maxPrice,
   ]);
@@ -309,6 +315,32 @@ const ProductPage: React.FC = () => {
     return Array.from(tags).sort((a, b) => a.localeCompare(b, "fr"));
   }, [inventoryProducts]);
 
+  const availableCategories = useMemo(() => {
+    const items = new Set<string>();
+    inventoryProducts.forEach((p) => {
+      const cat = (p as any).category;
+      if (cat) items.add(cat);
+    });
+    return Array.from(items).sort((a, b) => a.localeCompare(b, "fr"));
+  }, [inventoryProducts]);
+
+  const availableSubcategories = useMemo(() => {
+    const items = new Set<string>();
+    inventoryProducts.forEach((p) => {
+      const subcat = (p as any).sub_category || (p as any).subcategory;
+      if (subcat) items.add(subcat);
+    });
+    return Array.from(items).sort((a, b) => a.localeCompare(b, "fr"));
+  }, [inventoryProducts]);
+
+  const availableBrands = useMemo(() => {
+    const items = new Set<string>();
+    inventoryProducts.forEach((p) => {
+      if (p.brand) items.add(p.brand);
+    });
+    return Array.from(items).sort((a, b) => a.localeCompare(b, "fr"));
+  }, [inventoryProducts]);
+
   useEffect(() => {
     if (!inventoryProducts.length) return;
 
@@ -356,6 +388,9 @@ const ProductPage: React.FC = () => {
     setBestSellerOnly(false);
     setSelectedSizes([]);
     setSelectedTags([]);
+    setSelectedCats([]);
+    setSelectedSubcats([]);
+    setSelectedBrands([]);
     if (priceBounds.max > 0) {
       setMinPrice(priceBounds.min);
       setMaxPrice(priceBounds.max);
@@ -376,6 +411,18 @@ const ProductPage: React.FC = () => {
         ? prev.filter((value) => value !== tag)
         : [...prev, tag]
     );
+  }, []);
+
+  const handleCatToggle = useCallback((cat: string) => {
+    setSelectedCats((prev) => prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]);
+  }, []);
+
+  const handleSubcatToggle = useCallback((subcat: string) => {
+    setSelectedSubcats((prev) => prev.includes(subcat) ? prev.filter((s) => s !== subcat) : [...prev, subcat]);
+  }, []);
+
+  const handleBrandToggle = useCallback((brand: string) => {
+    setSelectedBrands((prev) => prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]);
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -408,9 +455,20 @@ const ProductPage: React.FC = () => {
         const matchesTag = product.tagNames.some((tag) =>
           selectedTags.includes(tag)
         );
-        if (!matchesTag) {
-          return false;
-        }
+        if (!matchesTag) return false;
+      }
+
+      if (selectedCats.length) {
+        if (!selectedCats.includes((product as any).category)) return false;
+      }
+
+      if (selectedSubcats.length) {
+        const subcat = (product as any).sub_category || (product as any).subcategory;
+        if (!selectedSubcats.includes(subcat)) return false;
+      }
+
+      if (selectedBrands.length) {
+        if (!product.brand || !selectedBrands.includes(product.brand)) return false;
       }
 
       const priceMatch = hasVariants
@@ -449,6 +507,9 @@ const ProductPage: React.FC = () => {
     search,
     selectedSizes,
     selectedTags,
+    selectedCats,
+    selectedSubcats,
+    selectedBrands,
   ]);
 
   const gridProducts = useMemo(
@@ -481,12 +542,21 @@ const ProductPage: React.FC = () => {
           selectedSizes={selectedSizes}
           availableTags={availableTags}
           selectedTags={selectedTags}
+          availableCats={availableCategories}
+          selectedCats={selectedCats}
+          availableSubcats={availableSubcategories}
+          selectedSubcats={selectedSubcats}
+          availableBrands={availableBrands}
+          selectedBrands={selectedBrands}
           onMinPriceChange={handleMinPriceChange}
           onMaxPriceChange={handleMaxPriceChange}
           onToggleInStock={setOnlyInStock}
           onToggleBestSeller={setBestSellerOnly}
           onToggleSize={handleSizeToggle}
           onToggleTag={handleTagToggle}
+          onToggleCat={handleCatToggle}
+          onToggleSubcat={handleSubcatToggle}
+          onToggleBrand={handleBrandToggle}
           onClearAllFilters={clearFilters}
           formatPrice={(value) => formatPrice(value)}
         />
