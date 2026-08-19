@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { format } from "date-fns";
+import { useMemo, useState, useEffect } from "react";
+import { format, startOfDay, endOfDay } from "date-fns";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -39,6 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ManageOrderSheet } from "./ManageOrderSheet";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 import {
@@ -47,7 +48,8 @@ import {
 } from "../hooks/useOrderMutations";
 import type { AdminOrder, OrderStatus } from "../types";
 import { Constants } from "@/types/supabase";
-import { Loader2, MoreHorizontal, RefreshCcw, Search } from "lucide-react";
+import { Download, Loader2, MoreHorizontal, RefreshCcw, Search } from "lucide-react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const STATUS_OPTIONS = ["all", ...Constants.public.Enums.order_status] as const;
 
@@ -81,9 +83,26 @@ export function OrdersTable({
 }: OrdersTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [deliveryCompanyFilter, setDeliveryCompanyFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [deliveryCompanies, setDeliveryCompanies] = useState<{id: string, name: string}[]>([]);
+  
   const [orderToCancel, setOrderToCancel] = useState<AdminOrder | null>(null);
+  
   const updateStatus = useUpdateOrderStatus();
   const cancelOrder = useCancelOrder();
+  const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      const { data } = await supabase.from("delivery_companies").select("*").order("name");
+      if (data) setDeliveryCompanies(data);
+    };
+    fetchCompanies();
+  }, [supabase]);
 
   const filteredOrders = useMemo(() => {
     const list = orders ?? [];
@@ -102,9 +121,23 @@ export function OrdersTable({
       const matchesStatus =
         statusFilter === "all" || order.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
+      const matchesDeliveryCompany = 
+        deliveryCompanyFilter === "all" || order.delivery_company === deliveryCompanyFilter;
+
+      let matchesDate = true;
+      if (order.created_at) {
+        const orderDate = new Date(order.created_at);
+        if (dateFrom) {
+          matchesDate = matchesDate && orderDate >= startOfDay(new Date(dateFrom));
+        }
+        if (dateTo) {
+          matchesDate = matchesDate && orderDate <= endOfDay(new Date(dateTo));
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesDeliveryCompany && matchesDate;
     });
-  }, [orders, searchTerm, statusFilter]);
+  }, [orders, searchTerm, statusFilter, deliveryCompanyFilter, dateFrom, dateTo]);
 
   const handleStatusChange = async (
     orderId: string,
@@ -137,11 +170,67 @@ export function OrdersTable({
     }
   };
 
+  const toggleSelectAll = () => {
+    if (selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(filteredOrders.map(o => o.id));
+    }
+  };
+
+  const toggleSelectOrder = (id: string) => {
+    setSelectedOrderIds(prev => 
+      prev.includes(id) ? prev.filter(orderId => orderId !== id) : [...prev, id]
+    );
+  };
+
+  const handleExportCSV = () => {
+    const ordersToExport = selectedOrderIds.length > 0 
+      ? filteredOrders.filter(o => selectedOrderIds.includes(o.id))
+      : filteredOrders;
+
+    if (ordersToExport.length === 0) {
+      toast.error("Aucune commande à exporter");
+      return;
+    }
+
+    const headers = ["Order ID", "Date", "Customer", "Phone", "Total (TND)", "Payment Method", "Delivery Company", "Status", "Payment Status"];
+    
+    const csvContent = [
+      headers.join(","),
+      ...ordersToExport.map(order => {
+        const name = order.customer_profile?.full_name || (order.guest_info as any)?.full_name || "Guest";
+        return [
+          order.id,
+          order.created_at ? format(new Date(order.created_at), "yyyy-MM-dd HH:mm:ss") : "",
+          `"${name}"`,
+          order.shipping_phone || "",
+          order.total_amount || 0,
+          order.payment_method || "",
+          `"${order.delivery_company || ""}"`,
+          order.status || "",
+          order.payment_status || ""
+        ].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `export_commandes_${format(new Date(), "yyyyMMdd_HHmmss")}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Export CSV réussi");
+  };
+
   const renderBody = () => {
     if (isLoading) {
       return (
         <TableRow>
-          <TableCell colSpan={7}>
+          <TableCell colSpan={8}>
             <div className="flex flex-col gap-2 py-8">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-3/4" />
@@ -155,7 +244,7 @@ export function OrdersTable({
     if (error) {
       return (
         <TableRow>
-          <TableCell colSpan={7}>
+          <TableCell colSpan={8}>
             <div className="flex flex-col items-center gap-3 py-10 text-center">
               <p className="text-sm text-red-600">{error.message}</p>
               <Button
@@ -175,7 +264,7 @@ export function OrdersTable({
     if (!filteredOrders.length) {
       return (
         <TableRow>
-          <TableCell colSpan={7}>
+          <TableCell colSpan={8}>
             <div className="py-10 text-center text-sm text-muted-foreground">
               {EMPTY_STATES[statusFilter]}
             </div>
@@ -198,6 +287,12 @@ export function OrdersTable({
 
       return (
         <TableRow key={order.id} className="align-top">
+          <TableCell>
+            <Checkbox 
+              checked={selectedOrderIds.includes(order.id)}
+              onCheckedChange={() => toggleSelectOrder(order.id)}
+            />
+          </TableCell>
           <TableCell>
             <div className="text-sm font-semibold">#{order.id.slice(0, 8)}</div>
             <p className="text-xs text-muted-foreground">{formattedDate}</p>
@@ -286,23 +381,24 @@ export function OrdersTable({
 
   return (
     <Card className="space-y-4 border bg-card p-4">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-1 items-center gap-2">
-          <div className="relative w-full max-w-md">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-wrap items-end gap-3 flex-1">
+          <div className="relative w-full sm:w-[220px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-9"
-              placeholder="Search by ID, customer, or phone"
+              className="pl-9 h-9"
+              placeholder="Search by ID, customer..."
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
             />
           </div>
+          
           <Select
             value={statusFilter}
             onValueChange={(value) => setStatusFilter(value as StatusFilter)}
           >
-            <SelectTrigger className="w-40">
-              <SelectValue />
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map((status) => (
@@ -312,30 +408,86 @@ export function OrdersTable({
               ))}
             </SelectContent>
           </Select>
+
+          <Select
+            value={deliveryCompanyFilter}
+            onValueChange={setDeliveryCompanyFilter}
+          >
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue placeholder="Ste. livr" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Delivery</SelectItem>
+              {deliveryCompanies.map((c) => (
+                <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 font-medium">From</span>
+            <Input 
+              type="date" 
+              className="h-9 w-[130px] text-xs" 
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 font-medium">To</span>
+            <Input 
+              type="date" 
+              className="h-9 w-[130px] text-xs" 
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
         </div>
-        <Button
-          variant="outline"
-          className="inline-flex items-center gap-2"
-          onClick={() => refetch()}
-          disabled={isFetching}
-        >
-          {isFetching ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCcw className="h-4 w-4" />
-          )}
-          Refresh
-        </Button>
+
+        <div className="flex items-center gap-2 mt-4 lg:mt-0">
+          <Button
+            variant="outline"
+            className="h-9 inline-flex items-center gap-2"
+            onClick={handleExportCSV}
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export CSV</span>
+            {selectedOrderIds.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1">{selectedOrderIds.length}</Badge>
+            )}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-9 w-9 p-0"
+            onClick={() => refetch()}
+            disabled={isFetching}
+          >
+            {isFetching ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCcw className="h-4 w-4" />
+            )}
+            <span className="sr-only">Refresh</span>
+          </Button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12">
+                <Checkbox 
+                  checked={filteredOrders.length > 0 && selectedOrderIds.length === filteredOrders.length}
+                  onCheckedChange={toggleSelectAll}
+                />
+              </TableHead>
               <TableHead>Order</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Total</TableHead>
-              <TableHead>Payment</TableHead>
               <TableHead>Livraison</TableHead>
+              <TableHead>Payment</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
