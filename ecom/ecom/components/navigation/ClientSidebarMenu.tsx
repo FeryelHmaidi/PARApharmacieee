@@ -30,6 +30,10 @@ export default function ClientSidebarMenu({ onClose }: { onClose: () => void }) 
     fetchDicts();
   }, [supabase]);
 
+  const toggleSection = (section: string) => {
+    setOpenSection(openSection === section ? null : section);
+  };
+
   const toggleCategory = (catId: string) => {
     setOpenSection(openSection === `cat-${catId}` ? "categories" : `cat-${catId}`);
   };
