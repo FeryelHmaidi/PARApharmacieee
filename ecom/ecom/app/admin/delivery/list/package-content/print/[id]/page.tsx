@@ -116,14 +116,29 @@ export default function PrintSlipPage() {
 
         <div className="mb-12">
           <h2 className="text-lg font-bold mb-4 uppercase tracking-wider">Valeur Déclarée / À Encaisser</h2>
-          <div className="bg-yellow-50 border-2 border-yellow-200 p-6 rounded-xl flex justify-between items-center">
-            <div className="text-yellow-800 font-medium text-lg">
-              {order.payment_method === 'cash_on_delivery' 
-                ? "Montant total à encaisser auprès du client à la livraison :" 
-                : "Valeur déclarée de la marchandise (Déjà payée) :"}
+          
+          <div className="bg-gray-50 border border-gray-200 p-6 rounded-xl flex flex-col gap-3">
+            <div className="flex justify-between items-center text-gray-600">
+              <span>Total des articles :</span>
+              <span className="font-medium">
+                {Number(Number(order.total_amount || 0) - Number(order.shipping_fee || 0)).toFixed(2).replace('.', ',')} DT
+              </span>
             </div>
-            <div className="text-3xl font-black text-black">
-              {Number(order.total_amount || 0).toFixed(2).replace('.', ',')} DT
+            
+            <div className="flex justify-between items-center text-gray-600 border-b border-gray-200 pb-3">
+              <span>Frais de livraison :</span>
+              <span className="font-medium">
+                {Number(order.shipping_fee || 0).toFixed(2).replace('.', ',')} DT
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center pt-2">
+              <span className="font-bold text-gray-800 text-lg">
+                Total Net {order.payment_method === 'cash_on_delivery' ? 'à encaisser' : '(Déjà payé)'} :
+              </span>
+              <span className="text-2xl font-black text-black">
+                {Number(order.total_amount || 0).toFixed(2).replace('.', ',')} DT
+              </span>
             </div>
           </div>
         </div>
