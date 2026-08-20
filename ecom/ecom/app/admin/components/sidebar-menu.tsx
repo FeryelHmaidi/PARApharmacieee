@@ -69,10 +69,6 @@ const items = [
           {
             title: "Prix livraison",
             url: "/admin/delivery/companies/pricing",
-          },
-          {
-            title: "Gouv de livraison",
-            url: "/admin/delivery/companies/governorates",
           }
         ]
       },
