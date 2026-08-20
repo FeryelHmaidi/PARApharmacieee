@@ -165,9 +165,20 @@ const OrdersPage = () => {
                       <span className="text-sm text-gray-500">
                         Paiement : {paymentLabel}
                       </span>
-                      <span className="font-semibold">
-                        Total : {totalDisplay} Dt
-                      </span>
+                      <div className="flex flex-col text-right">
+                        <span className="font-semibold">
+                          Total : {totalDisplay} Dt
+                        </span>
+                        {order.shipping_fee !== null ? (
+                          <span className="text-xs text-gray-500">
+                            (inclut {Number(order.shipping_fee).toFixed(2).replace('.', ',')} Dt de livraison)
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-500 italic">
+                            (Frais de livraison à déterminer)
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
