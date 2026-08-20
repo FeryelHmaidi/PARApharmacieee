@@ -208,7 +208,7 @@ const CartPage = () => {
               </div>
               <div className="flex justify-between text-gray-500">
                 <span>Shipping</span>
-                <span>0.00 DT</span>
+                <span className="text-sm italic">Calculé ultérieurement</span>
               </div>
               <div className="flex justify-between text-red-600 font-bold text-lg pt-2">
                 <span>Total</span>
@@ -466,7 +466,7 @@ const CartPage = () => {
               </div>
               <div className="flex justify-between text-gray-500">
                 <span>Livraison</span>
-                <span>Calculée à l'expédition</span>
+                <span className="text-xs italic">Calculée ultérieurement</span>
               </div>
             </div>
             <div className="flex justify-between text-lg font-semibold pt-2 border-t">

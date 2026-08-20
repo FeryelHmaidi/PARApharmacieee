@@ -141,6 +141,7 @@ const buildInitialValues = (order?: AdminOrder | null): OrderFormValues => {
     totalAmount: order?.total_amount ?? computedTotal,
     currency: order?.currency ?? "TND",
     deliveryCompany: order?.delivery_company ?? "",
+    shippingFee: order?.shipping_fee ?? null,
     notes: order?.notes ?? guestInfo?.notes ?? "",
     items: mappedItems,
   };
@@ -244,13 +245,13 @@ export function ManageOrderSheet({
 
   useEffect(() => {
     setForm((prev) => {
-      const normalizedTotal = Number(itemsSubtotal.toFixed(3));
+      const normalizedTotal = Number((itemsSubtotal + (prev.shippingFee || 0)).toFixed(3));
       if (prev.totalAmount === normalizedTotal) {
         return prev;
       }
       return { ...prev, totalAmount: normalizedTotal };
     });
-  }, [itemsSubtotal]);
+  }, [itemsSubtotal, form.shippingFee]);
 
   useEffect(() => {
     if (!products.length || !form.items.length) return;
@@ -400,7 +401,7 @@ export function ManageOrderSheet({
       return;
     }
 
-    const submission = { ...form, totalAmount: itemsSubtotal };
+    const submission = { ...form, totalAmount: itemsSubtotal + (form.shippingFee || 0) };
 
     try {
       await upsertOrder.mutateAsync(submission);
@@ -587,8 +588,16 @@ export function ManageOrderSheet({
                     Adjust quantities or remove products before saving.
                   </p>
                 </div>
-                <div className="text-lg font-semibold">
-                  {formatCurrency(itemsSubtotal)}
+                <div className="flex flex-col text-right">
+                  <div className="text-sm text-muted-foreground">
+                    Sous-total: {formatCurrency(itemsSubtotal)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Livraison: {form.shippingFee !== null ? formatCurrency(form.shippingFee) : "À définir"}
+                  </div>
+                  <div className="text-lg font-semibold mt-1">
+                    Total: {formatCurrency(itemsSubtotal + (form.shippingFee || 0))}
+                  </div>
                 </div>
               </div>
               {form.items.length === 0 ? (
@@ -707,6 +716,20 @@ export function ManageOrderSheet({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Frais de livraison (DT)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  value={form.shippingFee ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseFloat(e.target.value) : null;
+                    handleChange("shippingFee", val);
+                  }}
+                  placeholder="Ex: 7.000"
+                />
               </div>
             </div>
 

@@ -300,6 +300,7 @@ export type Database = {
           payment_status: string | null
           shipping_address: string
           shipping_city: string
+          shipping_fee: number | null
           shipping_phone: string
           status: Database["public"]["Enums"]["order_status"] | null
           total_amount: number
@@ -317,6 +318,7 @@ export type Database = {
           payment_status?: string | null
           shipping_address: string
           shipping_city: string
+          shipping_fee?: number | null
           shipping_phone: string
           status?: Database["public"]["Enums"]["order_status"] | null
           total_amount: number
@@ -334,6 +336,7 @@ export type Database = {
           payment_status?: string | null
           shipping_address?: string
           shipping_city?: string
+          shipping_fee?: number | null
           shipping_phone?: string
           status?: Database["public"]["Enums"]["order_status"] | null
           total_amount?: number
