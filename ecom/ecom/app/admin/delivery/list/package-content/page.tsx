@@ -71,11 +71,8 @@ export default function PackageContentPage() {
   }, [supabase]);
 
   const handlePrint = (orderId: string) => {
-    // In a real app, this would generate a PDF or open a new window for printing
-    toast.success("Génération du bordereau en cours...");
-    setTimeout(() => {
-      window.print();
-    }, 500);
+    // Open the dedicated print layout in a new tab
+    window.open(`/admin/delivery/list/package-content/print/${orderId}`, '_blank');
   };
 
   return (
