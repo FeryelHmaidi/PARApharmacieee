@@ -11,7 +11,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { ChartArea, PackageSearch, Pill, Settings } from "lucide-react";
+import { ChartArea, PackageSearch, Pill, Settings, Truck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -51,11 +51,42 @@ const items = [
         title: "Marques",
         url: "/admin/inventory/brands",
       },
-      {
-        title: "Sociétés de livraison",
-        url: "/admin/inventory/delivery-companies",
-      },
     ],
+  },
+  {
+    title: "Livraison",
+    url: "/admin/delivery",
+    icon: Truck,
+    items: [
+      {
+        title: "Société de livraison",
+        url: "/admin/delivery/companies",
+        subItems: [
+          {
+            title: "API / login",
+            url: "/admin/delivery/companies/api-login",
+          },
+          {
+            title: "Prix livraison",
+            url: "/admin/delivery/companies/pricing",
+          },
+          {
+            title: "Gouv de livraison",
+            url: "/admin/delivery/companies/governorates",
+          }
+        ]
+      },
+      {
+        title: "Liste de sté's de livr",
+        url: "/admin/delivery/list",
+        subItems: [
+          {
+            title: "Contenu des colis",
+            url: "/admin/delivery/list/package-content",
+          }
+        ]
+      }
+    ]
   },
 ];
 
