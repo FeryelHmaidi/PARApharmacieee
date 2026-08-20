@@ -76,16 +76,25 @@ export type Database = {
           id: string
           name: string
           created_at: string
+          api_key: string | null
+          api_secret: string | null
+          base_price: number | null
         }
         Insert: {
           id?: string
           name: string
           created_at?: string
+          api_key?: string | null
+          api_secret?: string | null
+          base_price?: number | null
         }
         Update: {
           id?: string
           name?: string
           created_at?: string
+          api_key?: string | null
+          api_secret?: string | null
+          base_price?: number | null
         }
       }
       cart_session_items: {
