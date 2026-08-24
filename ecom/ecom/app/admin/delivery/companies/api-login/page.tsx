@@ -14,6 +14,8 @@ type DeliveryCompany = {
   name: string;
   api_key: string | null;
   api_secret: string | null;
+  portal_login: string | null;
+  portal_password: string | null;
 };
 
 export default function ApiLoginPage() {
@@ -21,58 +23,72 @@ export default function ApiLoginPage() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
+  const [portalLogin, setPortalLogin] = useState("");
+  const [portalPassword, setPortalPassword] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const supabase = createClientComponentClient();
 
-  const fetchCompanies = async () => {
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from("delivery_companies")
-      .select("id, name, api_key, api_secret")
-      .order("name");
-    
-    if (error) {
-      toast.error("Erreur de chargement: " + error.message);
-    } else {
-      setCompanies(data || []);
-    }
-    setIsLoading(false);
-  };
-
   useEffect(() => {
+    const fetchCompanies = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("delivery_companies")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) {
+        toast.error("Erreur: " + error.message);
+      } else if (data) {
+        setCompanies(data);
+      }
+      setIsLoading(false);
+    };
+
     fetchCompanies();
   }, [supabase]);
 
-  // When selection changes, update the inputs
   useEffect(() => {
     if (selectedCompanyId) {
       const company = companies.find((c) => c.id === selectedCompanyId);
       setApiKey(company?.api_key || "");
       setApiSecret(company?.api_secret || "");
+      setPortalLogin(company?.portal_login || "");
+      setPortalPassword(company?.portal_password || "");
     } else {
       setApiKey("");
       setApiSecret("");
+      setPortalLogin("");
+      setPortalPassword("");
     }
   }, [selectedCompanyId, companies]);
 
   const handleSave = async () => {
-    if (!selectedCompanyId) return;
+    if (!selectedCompanyId) {
+      toast.error("Veuillez sélectionner une société");
+      return;
+    }
+
     setIsSaving(true);
-    
     const { error } = await supabase
       .from("delivery_companies")
-      .update({
-        api_key: apiKey.trim() || null,
-        api_secret: apiSecret.trim() || null,
+      .update({ 
+        api_key: apiKey || null, 
+        api_secret: apiSecret || null,
+        portal_login: portalLogin || null,
+        portal_password: portalPassword || null
       })
       .eq("id", selectedCompanyId);
 
     if (error) {
       toast.error("Erreur lors de la sauvegarde: " + error.message);
     } else {
-      toast.success("Identifiants API sauvegardés !");
-      fetchCompanies(); // Refresh data
+      toast.success("Accès mis à jour avec succès !");
+      setCompanies(companies.map(c => 
+        c.id === selectedCompanyId 
+          ? { ...c, api_key: apiKey || null, api_secret: apiSecret || null, portal_login: portalLogin || null, portal_password: portalPassword || null } 
+          : c
+      ));
     }
     setIsSaving(false);
   };
@@ -121,36 +137,75 @@ export default function ApiLoginPage() {
               </div>
 
               {selectedCompanyId && (
-                <div className="space-y-4 pt-4 border-t">
-                  <div>
-                    <Label className="block text-sm font-medium text-gray-700 mb-1">
-                      Clé API (API Key)
-                    </Label>
-                    <Input
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="Ex: sk_live_xxxxxxxxxxxxxxxxxxxxx"
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <Label className="block text-sm font-medium text-gray-700 mb-1">
-                      Mot de passe / Secret API (Optionnel)
-                    </Label>
-                    <Input
-                      type="password"
-                      value={apiSecret}
-                      onChange={(e) => setApiSecret(e.target.value)}
-                      placeholder="••••••••••••••••"
-                      className="w-full"
-                    />
+                <div className="space-y-6 pt-4 border-t">
+                  
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                    <p className="text-sm text-blue-800">
+                      Renseignez la <strong>Clé API</strong> si le transporteur vous l'a fournie. Sinon, renseignez l'<strong>Identifiant (Login)</strong> et le <strong>Mot de passe</strong> de votre espace client.
+                    </p>
                   </div>
 
-                  <div className="pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-gray-800 border-b pb-2">Connexion par API</h3>
+                      <div>
+                        <Label className="block text-sm font-medium text-gray-700 mb-1">
+                          Clé API (API Key)
+                        </Label>
+                        <Input
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          placeholder="Ex: sk_live_xxxxxxxxxxxxxxxxxxxxx"
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <Label className="block text-sm font-medium text-gray-700 mb-1">
+                          Secret API (Optionnel)
+                        </Label>
+                        <Input
+                          type="password"
+                          value={apiSecret}
+                          onChange={(e) => setApiSecret(e.target.value)}
+                          placeholder="••••••••••••••••"
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-gray-800 border-b pb-2">Connexion par Portail</h3>
+                      <div>
+                        <Label className="block text-sm font-medium text-gray-700 mb-1">
+                          Identifiant (Login / Email)
+                        </Label>
+                        <Input
+                          value={portalLogin}
+                          onChange={(e) => setPortalLogin(e.target.value)}
+                          placeholder="Ex: contact@maboite.com"
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <Label className="block text-sm font-medium text-gray-700 mb-1">
+                          Mot de passe
+                        </Label>
+                        <Input
+                          type="password"
+                          value={portalPassword}
+                          onChange={(e) => setPortalPassword(e.target.value)}
+                          placeholder="••••••••••••••••"
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
                     <Button 
                       onClick={handleSave} 
                       disabled={isSaving} 
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white w-full"
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white w-full md:w-auto"
                     >
                       {isSaving ? "Sauvegarde..." : <><Save className="mr-2 h-4 w-4" /> Sauvegarder les accès</>}
                     </Button>

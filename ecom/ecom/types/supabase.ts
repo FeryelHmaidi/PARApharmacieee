@@ -79,6 +79,10 @@ export type Database = {
           api_key: string | null
           api_secret: string | null
           base_price: number | null
+          portal_login: string | null
+          portal_password: string | null
+          delivery_cost: number | null
+          return_fee: number | null
         }
         Insert: {
           id?: string
@@ -87,6 +91,10 @@ export type Database = {
           api_key?: string | null
           api_secret?: string | null
           base_price?: number | null
+          portal_login?: string | null
+          portal_password?: string | null
+          delivery_cost?: number | null
+          return_fee?: number | null
         }
         Update: {
           id?: string
@@ -95,6 +103,10 @@ export type Database = {
           api_key?: string | null
           api_secret?: string | null
           base_price?: number | null
+          portal_login?: string | null
+          portal_password?: string | null
+          delivery_cost?: number | null
+          return_fee?: number | null
         }
       }
       cart_session_items: {
