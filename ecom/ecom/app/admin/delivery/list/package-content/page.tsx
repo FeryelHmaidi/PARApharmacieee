@@ -6,6 +6,11 @@ import { toast } from "sonner";
 import { Package, Printer, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+type OrderItem = {
+  quantity: number;
+  product_name: string;
+};
+
 type OrderInfo = {
   id: string;
   created_at: string;
@@ -14,6 +19,7 @@ type OrderInfo = {
   status: string;
   guest_info: any;
   items_count: number;
+  items: OrderItem[];
 };
 
 export default function PackageContentPage() {
@@ -35,7 +41,8 @@ export default function PackageContentPage() {
           status,
           guest_info,
           order_items (
-            quantity
+            quantity,
+            product:products(name)
           )
         `)
         .order("created_at", { ascending: false })
@@ -45,11 +52,15 @@ export default function PackageContentPage() {
         toast.error("Erreur de chargement: " + error.message);
       } else {
         const processedOrders = (data || []).map((order: any) => {
-          // Calculate total items count
           const itemsCount = (order.order_items || []).reduce(
             (sum: number, item: any) => sum + (item.quantity || 1), 
             0
           );
+          
+          const items: OrderItem[] = (order.order_items || []).map((item: any) => ({
+            quantity: item.quantity || 1,
+            product_name: item.product?.name || "Produit inconnu",
+          }));
           
           return {
             id: order.id,
@@ -59,6 +70,7 @@ export default function PackageContentPage() {
             status: order.status,
             guest_info: order.guest_info,
             items_count: itemsCount,
+            items,
           };
         });
         
@@ -71,7 +83,6 @@ export default function PackageContentPage() {
   }, [supabase]);
 
   const handlePrint = (orderId: string) => {
-    // Open the dedicated print layout in a new tab
     window.open(`/admin/delivery/list/package-content/print/${orderId}`, '_blank');
   };
 
@@ -100,15 +111,15 @@ export default function PackageContentPage() {
                   <tr>
                     <th className="p-4 font-medium text-gray-700">Commande</th>
                     <th className="p-4 font-medium text-gray-700">Client</th>
+                    <th className="p-4 font-medium text-gray-700">Produits commandés</th>
                     <th className="p-4 font-medium text-gray-700">Transporteur</th>
-                    <th className="p-4 font-medium text-gray-700 text-center">Qté d'articles</th>
                     <th className="p-4 font-medium text-gray-700 text-right">Valeur Déclarée</th>
                     <th className="p-4 font-medium text-gray-700 text-center w-24">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50">
+                    <tr key={order.id} className="hover:bg-gray-50 align-top">
                       <td className="p-4">
                         <div className="font-medium text-gray-900">{order.id.split('-')[0].toUpperCase()}</div>
                         <div className="text-xs text-gray-500 flex items-center mt-1">
@@ -120,12 +131,21 @@ export default function PackageContentPage() {
                         {order.guest_info?.full_name || "Client"}
                       </td>
                       <td className="p-4">
+                        <div className="flex flex-col gap-1">
+                          {order.items.map((item, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm">
+                              <span className="bg-yellow-100 text-yellow-800 font-bold text-xs px-1.5 py-0.5 rounded">
+                                x{item.quantity}
+                              </span>
+                              <span className="text-gray-800">{item.product_name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="p-4">
                         <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
                           {order.delivery_company || "Non assigné"}
                         </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <span className="font-bold text-gray-700">{order.items_count}</span>
                       </td>
                       <td className="p-4 text-right">
                         <span className="font-bold text-gray-900">
