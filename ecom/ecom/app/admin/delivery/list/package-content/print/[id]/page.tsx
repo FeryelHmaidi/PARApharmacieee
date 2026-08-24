@@ -11,9 +11,28 @@ export default function PrintSlipPage() {
   const orderId = params.id as string;
   const [order, setOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Paramètres de l'expéditeur (sauvegardés dans le navigateur)
+  const [senderName, setSenderName] = useState("PharmaStore");
+  const [senderMF, setSenderMF] = useState("1234567/X");
+  const [senderAddress, setSenderAddress] = useState("Tunis, Tunisie");
+  const [senderPhone, setSenderPhone] = useState("55 000 000");
+  const [isEditingSender, setIsEditingSender] = useState(false);
+
   const supabase = createClientComponentClient();
 
   useEffect(() => {
+    // Charger les paramètres locaux s'ils existent
+    const savedName = localStorage.getItem("print_sender_name");
+    const savedMF = localStorage.getItem("print_sender_mf");
+    const savedAddress = localStorage.getItem("print_sender_address");
+    const savedPhone = localStorage.getItem("print_sender_phone");
+    
+    if (savedName) setSenderName(savedName);
+    if (savedMF) setSenderMF(savedMF);
+    if (savedAddress) setSenderAddress(savedAddress);
+    if (savedPhone) setSenderPhone(savedPhone);
+
     if (!orderId) return;
 
     const fetchOrderDetails = async () => {
@@ -35,15 +54,28 @@ export default function PrintSlipPage() {
       }
       setIsLoading(false);
       
-      if (data) {
+      // Auto-print ONLY if we are not editing
+      if (data && !isEditingSender) {
         setTimeout(() => {
-          window.print();
+          // On évite d'imprimer auto si on vient d'ouvrir pour éditer
+          if (!localStorage.getItem("prevent_auto_print")) {
+             window.print();
+          }
+          localStorage.removeItem("prevent_auto_print");
         }, 800);
       }
     };
 
     fetchOrderDetails();
-  }, [orderId, supabase]);
+  }, [orderId, supabase, isEditingSender]);
+
+  const saveSenderInfo = () => {
+    localStorage.setItem("print_sender_name", senderName);
+    localStorage.setItem("print_sender_mf", senderMF);
+    localStorage.setItem("print_sender_address", senderAddress);
+    localStorage.setItem("print_sender_phone", senderPhone);
+    setIsEditingSender(false);
+  };
 
   if (isLoading) {
     return <div className="p-8 text-center font-sans">Chargement du bordereau...</div>;
@@ -55,22 +87,56 @@ export default function PrintSlipPage() {
 
   const shortOrderId = order.id.split('-')[0].toUpperCase();
   const orderDate = new Date(order.created_at).toLocaleDateString('fr-FR');
-  const city = order.guest_info?.city || order.guest_info?.address || "Tunis";
   
-  // Calculate total from items to show in table (excluding shipping if they want only product total, 
-  // but PRIX TOTAL usually means what the client pays, which is total_amount)
-  const itemsTotal = order.order_items?.reduce((sum: number, item: any) => sum + ((item.variant?.price || 0) * item.quantity), 0) || 0;
+  // Utiliser les vrais champs de la commande pour l'adresse d'expédition
+  const city = order.shipping_city || order.guest_info?.city || "Tunis";
+  const address = order.shipping_address || order.guest_info?.address || "";
+  const phone = order.shipping_phone || order.guest_info?.phone || "";
+  const fullName = order.guest_info?.full_name || "Client";
+  const raisonSociale = order.guest_info?.company_name || order.guest_info?.raison_sociale || "";
+  const postalCode = order.guest_info?.postal_code || "";
 
   return (
     <div className="bg-white text-black p-4 mx-auto font-sans" style={{ maxWidth: '800px', minHeight: '100vh', fontSize: '13px' }}>
       
+      {/* Modal d'édition des infos de l'expéditeur (invisible à l'impression) */}
+      {isEditingSender && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden">
+          <div className="bg-white p-6 rounded-lg shadow-xl w-96 flex flex-col gap-4">
+            <h3 className="font-bold text-lg border-b pb-2">Infos de votre société</h3>
+            
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600">Nom de la société</label>
+              <input type="text" value={senderName} onChange={e => setSenderName(e.target.value)} className="border rounded p-2" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600">Matricule Fiscale (M.F.)</label>
+              <input type="text" value={senderMF} onChange={e => setSenderMF(e.target.value)} className="border rounded p-2" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600">Adresse</label>
+              <input type="text" value={senderAddress} onChange={e => setSenderAddress(e.target.value)} className="border rounded p-2" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-gray-600">Téléphone</label>
+              <input type="text" value={senderPhone} onChange={e => setSenderPhone(e.target.value)} className="border rounded p-2" />
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => setIsEditingSender(false)} className="px-4 py-2 bg-gray-200 rounded">Annuler</button>
+              <button onClick={saveSenderInfo} className="px-4 py-2 bg-blue-600 text-white rounded font-medium">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hide elements when actually printing */}
       <div className="border border-gray-300 p-6 rounded print:border-none print:p-0">
         
         {/* Header Row */}
         <div className="flex justify-between items-start mb-6">
           <div className="w-1/3">
-            <h1 className="text-3xl font-black tracking-tighter">PharmaStore</h1>
+            <h1 className="text-3xl font-black tracking-tighter uppercase">{senderName}</h1>
           </div>
           <div className="w-1/3 text-center font-bold text-lg">
             Bon de Livraison N°:
@@ -91,9 +157,9 @@ export default function PrintSlipPage() {
               LGR(1/1)
             </div>
             <div className="mt-2 font-bold text-center underline uppercase">
-              PHARMASTORE =&gt; {city.substring(0, 15)}
+              {senderName.substring(0, 10)} =&gt; {city.substring(0, 15)}
             </div>
-            <div className="font-bold text-center">
+            <div className="font-bold text-center uppercase">
               ({city})
             </div>
           </div>
@@ -105,11 +171,12 @@ export default function PrintSlipPage() {
             <div className="border border-black flex flex-col">
               <div className="flex justify-between border-b border-black p-1">
                 <span className="font-bold">EXPÉDITEUR:</span>
-                <span className="font-bold text-lg">PharmaStore</span>
+                <span className="font-bold text-lg">{senderName}</span>
               </div>
               <div className="p-1">
-                <div>M.F. : 1234567/X</div>
-                <div>Adresse : Tunis, Tunisie</div>
+                <div>M.F. : {senderMF}</div>
+                <div>Adresse : {senderAddress}</div>
+                <div>Tél : {senderPhone}</div>
               </div>
             </div>
 
@@ -117,12 +184,13 @@ export default function PrintSlipPage() {
             <div className="border border-black flex flex-col h-full">
               <div className="flex justify-between border-b border-black p-1 bg-gray-100">
                 <span className="font-bold">DESTINATAIRE:</span>
-                <span className="font-bold text-lg">{order.guest_info?.full_name || "Client"}</span>
+                <span className="font-bold text-lg">{fullName}</span>
               </div>
               <div className="p-1">
-                <div>Adresse: {order.guest_info?.address} / {city}</div>
-                <div>Tel: <span className="font-bold">{order.guest_info?.phone}</span></div>
-                {order.guest_info?.postal_code && <div>Code Postal: {order.guest_info.postal_code}</div>}
+                {raisonSociale && <div><span className="font-medium">R.S:</span> {raisonSociale}</div>}
+                <div><span className="font-medium">Adresse:</span> {address} / {city}</div>
+                <div><span className="font-medium">Tel:</span> <span className="font-bold">{phone}</span></div>
+                {postalCode && <div><span className="font-medium">Code Postal:</span> {postalCode}</div>}
               </div>
             </div>
 
@@ -219,8 +287,17 @@ export default function PrintSlipPage() {
           Pour une impression parfaite, réglez les marges sur "Aucune" ou "Minimum" dans la fenêtre d'impression.
         </div>
 
-        {/* Helper button for manual print */}
-        <div className="mt-4 text-center print:hidden">
+        {/* Helper buttons */}
+        <div className="mt-4 flex justify-center gap-4 print:hidden">
+          <button 
+            onClick={() => {
+              localStorage.setItem("prevent_auto_print", "true");
+              setIsEditingSender(true);
+            }}
+            className="bg-gray-200 text-gray-800 px-4 py-2 rounded shadow font-medium"
+          >
+            Modifier ma société
+          </button>
           <button 
             onClick={() => window.print()}
             className="bg-blue-600 text-white px-6 py-2 rounded shadow font-medium"
