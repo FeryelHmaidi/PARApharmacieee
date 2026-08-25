@@ -5,6 +5,7 @@ import ProductModal from "@/components/ui/product-modal";
 import { ChevronDown, ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/hooks/useCartStore";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 export type ProductSize = {
   size: string;
@@ -109,19 +110,37 @@ const ProductGrid: React.FC<Props> = ({
 
   return (
     <div className={`w-full ${className}`}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 ">
-        {shown.map((p) => (
-          <article
+      <motion.div 
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.06,
+            },
+          },
+        }}
+      >
+        {shown.map((p, index) => (
+          <motion.article
             key={p.id}
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+            }}
+            whileHover={{ y: -6, transition: { duration: 0.2 } }}
+            whileTap={{ scale: 0.98 }}
             role="button"
             tabIndex={0}
             onClick={() => handleProductClick(p)}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") handleProductClick(p);
             }}
-            className={`group bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-lg transform hover:-translate-y-1 transition cursor-pointer flex flex-col`}
+            className={`group bg-white border border-gray-100 hover:border-yellow-200 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col`}
             style={{ height: cardHeight }}
-            /* note: custom asymmetric radius for rough/modern edges */
           >
             {/* Upper half - image, stretches edge-to-edge */}
             <div className="h-[70%] w-full bg-gray-100  overflow-hidden relative">
@@ -202,16 +221,16 @@ const ProductGrid: React.FC<Props> = ({
                 <button
                   onClick={(e) => handleQuickAdd(e, p)}
                   disabled={p.inStock === false}
-                  className="w-full py-2 flex items-center justify-center gap-2 rounded-md bg-white border border-gray-300 text-sm font-semibold text-gray-800 transition hover:bg-gray-50 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-gray-100"
+                  className="w-full py-2 flex items-center justify-center gap-2 rounded-md bg-white border border-gray-300 text-sm font-semibold text-gray-800 transition hover:bg-yellow-500 hover:text-white hover:border-yellow-500 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-gray-100 shadow-sm active:scale-95"
                 >
                   <ShoppingCart className="w-4 h-4" />
                   Ajouter au panier
                 </button>
               </div>
             </div>
-          </article>
+          </motion.article>
         ))}
-      </div>
+      </motion.div>
 
       <div className="mt-4 text-sm text-gray-500">
         Affichage {shown.length} / {filtered.length} produits
