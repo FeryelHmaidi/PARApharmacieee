@@ -165,6 +165,20 @@ export function ManageOrderSheet({
     buildInitialValues(order)
   );
 
+  // Règle de verrouillage : Une commande est verrouillée si elle est 'processing' (Téléchargé), 'shipped' (Emballé), ou 'delivered'
+  // OU si elle est 'confirmed' et a déjà une société de livraison assignée.
+  const isOrderLocked = useMemo(() => {
+    if (!order) return false;
+    const status = order.status;
+    if (status === "processing" || status === "shipped" || status === "delivered") {
+      return true;
+    }
+    if (status === "confirmed" && order.delivery_company) {
+      return true;
+    }
+    return false;
+  }, [order]);
+
   useEffect(() => {
     if (open) {
       setForm(buildInitialValues(order));
@@ -401,16 +415,32 @@ export function ManageOrderSheet({
       return;
     }
 
-    const submission = { ...form, totalAmount: itemsSubtotal + (form.shippingFee || 0) };
+    if (isOrderLocked) {
+      toast.error("Cette commande est verrouillée (Téléchargée ou Emballée). Elle ne peut plus être modifiée.");
+      return;
+    }
+
+    // Auto-transition : Si la commande est confirmée et qu'une société de livraison est assignée,
+    // son statut devient automatiquement 'processing' (Téléchargé) pour la transmission à la société.
+    let statusToSave = form.status;
+    if (form.status === "confirmed" && form.deliveryCompany) {
+      statusToSave = "processing";
+    }
+
+    const submission = { 
+      ...form, 
+      status: statusToSave,
+      totalAmount: itemsSubtotal + (form.shippingFee || 0) 
+    };
 
     try {
       await upsertOrder.mutateAsync(submission);
-      toast.success(mode === "edit" ? "Order updated" : "Order created");
+      toast.success(mode === "edit" ? "Commande mise à jour" : "Commande créée");
       setOpen(false);
       onSuccess?.();
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Unable to save order"
+        error instanceof Error ? error.message : "Impossible de sauvegarder la commande"
       );
     }
   };
@@ -428,10 +458,22 @@ export function ManageOrderSheet({
       <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
         <form onSubmit={handleSubmit} className="flex h-full flex-col">
           <SheetHeader className="text-left">
-            <SheetTitle>{title}</SheetTitle>
-            <SheetDescription>{description}</SheetDescription>
+            <SheetTitle>{isOrderLocked ? "Détails de la commande (Verrouillée)" : title}</SheetTitle>
+            <SheetDescription>
+              {isOrderLocked 
+                ? "Cette commande a déjà été transmise au transporteur ou emballée. Elle ne peut plus être modifiée (lecture seule)."
+                : description}
+            </SheetDescription>
           </SheetHeader>
 
+          {isOrderLocked && (
+            <div className="mx-4 mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-center gap-2">
+              <span className="font-bold">🔒 Commande Verrouillée :</span> 
+              Pour modifier une commande transmise à la société de livraison, vous devez la supprimer et en créer une nouvelle.
+            </div>
+          )}
+
+          <fieldset disabled={isOrderLocked} className="contents">
           <div className="mt-6 flex flex-col gap-6 p-4">
             <div className="grid gap-4">
               <div>
@@ -744,6 +786,7 @@ export function ManageOrderSheet({
               />
             </div>
           </div>
+          </fieldset>
 
           <SheetFooter className="mt-8 gap-2 sm:flex-row">
             <Button
@@ -752,15 +795,17 @@ export function ManageOrderSheet({
               onClick={() => setOpen(false)}
               disabled={disabled}
             >
-              Close
+              Fermer
             </Button>
-            <Button type="submit" disabled={disabled}>
-              {disabled
-                ? "Saving..."
-                : mode === "edit"
-                ? "Save changes"
-                : "Create order"}
-            </Button>
+            {!isOrderLocked && (
+              <Button type="submit" disabled={disabled}>
+                {disabled
+                  ? "Sauvegarde..."
+                  : mode === "edit"
+                  ? "Enregistrer les modifications"
+                  : "Créer la commande"}
+              </Button>
+            )}
           </SheetFooter>
         </form>
       </SheetContent>

@@ -11,6 +11,7 @@ export default function PrintSlipPage() {
   const orderId = params.id as string;
   const [order, setOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [origin, setOrigin] = useState("");
   
   // Paramètres de l'expéditeur (sauvegardés dans le navigateur)
   const [senderName, setSenderName] = useState("PharmaStore");
@@ -20,6 +21,12 @@ export default function PrintSlipPage() {
   const [isEditingSender, setIsEditingSender] = useState(false);
 
   const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+  }, []);
 
   useEffect(() => {
     // Charger les paramètres locaux s'ils existent
@@ -96,9 +103,24 @@ export default function PrintSlipPage() {
   const raisonSociale = order.guest_info?.company_name || order.guest_info?.raison_sociale || "";
   const postalCode = order.guest_info?.postal_code || "";
 
+  const isLocked = order.status === "shipped" || order.status === "delivered" || order.status === "processing";
+
   return (
     <div className="bg-white text-black p-4 mx-auto font-sans" style={{ maxWidth: '800px', minHeight: '100vh', fontSize: '13px' }}>
       
+      {/* Locked notification header (screen only) */}
+      {isLocked && (
+        <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-2.5 rounded-lg flex items-center justify-between print:hidden text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">🔒 Bordereau Verrouillé :</span>
+            <span>Les coordonnées et articles de ce bordereau sont figés suite à la transmission / emballage.</span>
+          </div>
+          <span className="bg-emerald-200 text-emerald-900 font-extrabold px-2 py-0.5 rounded text-[11px] uppercase">
+            {order.status === "shipped" ? "Emballé" : order.status === "processing" ? "Téléchargé" : order.status}
+          </span>
+        </div>
+      )}
+
       {/* Modal d'édition des infos de l'expéditeur (invisible à l'impression) */}
       {isEditingSender && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden">
@@ -152,7 +174,7 @@ export default function PrintSlipPage() {
           
           {/* Left: QR Code & Routing */}
           <div className="w-1/3 flex flex-col items-center justify-center border border-black p-2">
-            <QRCodeSVG value={order.id} size={100} />
+            <QRCodeSVG value={origin ? `${origin}/scan/${order.id}` : `https://parapharmacie.tn/scan/${order.id}`} size={100} />
             <div className="mt-2 font-bold text-lg border border-black px-2 py-1 uppercase text-center w-full">
               LGR(1/1)
             </div>

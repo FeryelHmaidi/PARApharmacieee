@@ -355,21 +355,32 @@ export function OrdersTable({
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuContent align="end" className="w-48">
                 <ManageOrderSheet
                   order={order}
-                  trigger={<DropdownMenuItem onSelect={(e) => e.preventDefault()}>Edit order</DropdownMenuItem>}
+                  trigger={
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      {order.status === "processing" || order.status === "shipped" || order.status === "delivered" || (order.status === "confirmed" && order.delivery_company)
+                        ? "👁️ Voir la commande"
+                        : "✏️ Modifier la commande"}
+                    </DropdownMenuItem>
+                  }
                 />
+                <DropdownMenuItem
+                  onClick={() => window.open(`/admin/delivery/list/package-content/print/${order.id}`, '_blank')}
+                >
+                  🖨️ Imprimer Bordereau
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => navigator.clipboard.writeText(order.id)}
                 >
-                  Copy order ID
+                  📋 Copier ID Commande
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="text-rose-600 focus:text-rose-600"
+                  className="text-rose-600 focus:text-rose-600 font-medium"
                   onClick={() => setOrderToCancel(order)}
                 >
-                  Cancel order
+                  🗑️ Supprimer / Annuler
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
