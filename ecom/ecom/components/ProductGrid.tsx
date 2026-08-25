@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import ProductModal from "@/components/ui/product-modal";
@@ -6,6 +6,7 @@ import { ChevronDown, ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/hooks/useCartStore";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import TiltCard3D from "@/components/TiltCard3D";
 
 export type ProductSize = {
   size: string;
@@ -20,8 +21,8 @@ export type Product = {
   id: string;
   title: string;
   subtitle?: string;
-  sizes: ProductSize[]; // Array of sizes with their prices
-  defaultPrice?: number; // Optional default price for display in grid
+  sizes: ProductSize[];
+  defaultPrice?: number;
   categories: string[];
   image?: string | null;
   images?: string[];
@@ -40,7 +41,7 @@ type Props = {
   onLoadMore?: () => void;
   onProductClick?: (p: Product) => void;
   className?: string;
-  cardHeight: string; // Accept custom height (e.g., "420px", "500px", etc.)
+  cardHeight: string;
 };
 
 const ProductGrid: React.FC<Props> = ({
@@ -50,7 +51,7 @@ const ProductGrid: React.FC<Props> = ({
   onLoadMore,
   onProductClick,
   className = "",
-  cardHeight = "420px", // Default height if not provided
+  cardHeight = "420px",
 }) => {
   const addItem = useCartStore((state) => state.addItem);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -64,16 +65,20 @@ const ProductGrid: React.FC<Props> = ({
     e.stopPropagation();
     if (p.inStock === false) return;
     if (!p.sizes || p.sizes.length === 0) return;
-    
-    // If only one size, add it directly
+
     if (p.sizes.length === 1) {
       const selectedSize = p.sizes[0];
       if (!selectedSize.variantId) {
         toast.error("Cette variante n'est pas disponible");
         return;
       }
-      const hasQuantity = typeof selectedSize.quantity === "number" && selectedSize.quantity > 0 && selectedSize.unit;
-      const sizeLabel = hasQuantity ? `${selectedSize.quantity} ${selectedSize.unit}` : selectedSize.size;
+      const hasQuantity =
+        typeof selectedSize.quantity === "number" &&
+        selectedSize.quantity > 0 &&
+        selectedSize.unit;
+      const sizeLabel = hasQuantity
+        ? `${selectedSize.quantity} ${selectedSize.unit}`
+        : selectedSize.size;
 
       addItem({
         productId: p.id,
@@ -86,12 +91,10 @@ const ProductGrid: React.FC<Props> = ({
       });
       toast.success("Produit ajouté au panier !");
     } else {
-      // If multiple sizes, open the modal to let user choose
       handleProductClick(p);
     }
   };
 
-  // filter by category membership (product.categories includes selectedCategory)
   const filtered = selectedCategory
     ? products.filter((p) => p.categories.includes(selectedCategory))
     : products;
@@ -110,7 +113,7 @@ const ProductGrid: React.FC<Props> = ({
 
   return (
     <div className={`w-full ${className}`}>
-      <motion.div 
+      <motion.div
         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
         initial="hidden"
         animate="visible"
@@ -118,117 +121,91 @@ const ProductGrid: React.FC<Props> = ({
           hidden: { opacity: 0 },
           visible: {
             opacity: 1,
-            transition: {
-              staggerChildren: 0.06,
-            },
+            transition: { staggerChildren: 0.06 },
           },
         }}
       >
-        {shown.map((p, index) => (
-          <motion.article
+        {shown.map((p) => (
+          <motion.div
             key={p.id}
             variants={{
-              hidden: { opacity: 0, y: 20 },
+              hidden: { opacity: 0, y: 24 },
               visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
             }}
-            whileHover={{ y: -6, transition: { duration: 0.2 } }}
-            whileTap={{ scale: 0.98 }}
-            role="button"
-            tabIndex={0}
-            onClick={() => handleProductClick(p)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") handleProductClick(p);
-            }}
-            className={`group bg-white border border-gray-100 hover:border-yellow-200 rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col`}
-            style={{ height: cardHeight }}
           >
-            {/* Upper half - image, stretches edge-to-edge */}
-            <div className="h-[70%] w-full bg-gray-100  overflow-hidden relative">
-              {p.image ? (
-                // plain <img> so this is portable; replace with Next/Image if desired
-                <img
-                  src={p.image}
-                  alt={p.title}
-                  className="w-full h-full object-cover block transition-transform duration-200 group-hover:scale-110"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-300 text-5xl">
-                  🛍️
+            <TiltCard3D intensity={12}>
+              <article
+                role="button"
+                tabIndex={0}
+                onClick={() => handleProductClick(p)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") handleProductClick(p);
+                }}
+                className="group bg-white border border-gray-100 hover:border-yellow-200 rounded-xl overflow-hidden shadow-md hover:shadow-2xl transition-shadow cursor-pointer flex flex-col"
+                style={{ height: cardHeight }}
+              >
+                {/* Image */}
+                <div className="h-[70%] w-full bg-gray-100 overflow-hidden relative">
+                  {p.image ? (
+                    <img
+                      src={p.image}
+                      alt={p.title}
+                      className="w-full h-full object-cover block transition-transform duration-300 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300 text-5xl">
+                      🛍️
+                    </div>
+                  )}
+                  {p.inStock === false && (
+                    <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center text-red-600 font-semibold text-sm">
+                      Rupture de stock
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-zinc-500/10 group-hover:bg-zinc-600/15 transition-colors" />
                 </div>
-              )}
 
-              {p.inStock === false && (
-                <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center text-red-600 font-semibold text-sm">
-                  Rupture de stock
-                </div>
-              )}
-
-              <div className="absolute inset-0 bg-zinc-500/10 group-hover:bg-zinc-600/20 transition-colors" />
-            </div>
-
-            {/* Lower half - content with padding */}
-            <div className="p-4 flex-1 flex flex-col justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-gray-900 line-clamp-2">
-                  {p.title}
-                </h3>
-                {p.brand && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = `/products?search=${encodeURIComponent(p.brand!)}`;
-                    }}
-                    className="mt-1 text-sm font-medium text-gray-500 hover:text-blue-600 hover:underline block text-left"
-                  >
-                    {p.brand}
-                  </button>
-                )}
-                {p.subtitle && (
-                  <p className="mt-1 text-sm text-gray-500 line-clamp-2">
-                    {p.subtitle}
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-4 flex flex-col gap-3">
-                <div className="flex flex-col">
-                  <div
-                    className={`text-lg font-bold ${
-                      p.inStock === false ? "text-gray-400" : "text-yellow-600"
-                    }`}
-                  >
-                    {p.sizes && p.sizes.length > 0 ? (
-                      <>
-                        {[...p.sizes]
-                          .sort((a, b) => a.price - b.price)[0]
-                          .price.toFixed(2).replace('.', ',')}{" "}
-                        Dt
-                      </>
-                    ) : (
-                      "Prix non disponible"
+                {/* Content */}
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div className="flex flex-col gap-1">
+                    <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">
+                      {p.title}
+                    </h3>
+                    {p.brand && (
+                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+                        {p.brand}
+                      </p>
                     )}
                   </div>
-                  {p.inStock === false && (
-                    <span className="text-xs text-red-500">Non disponible</span>
-                  )}
-                  {p.sizes && p.sizes.length > 1 && (
-                    <span className="text-xs text-gray-500">
-                      {p.sizes.length} tailles disponibles
-                    </span>
-                  )}
-                </div>
 
-                <button
-                  onClick={(e) => handleQuickAdd(e, p)}
-                  disabled={p.inStock === false}
-                  className="w-full py-2 flex items-center justify-center gap-2 rounded-md bg-white border border-gray-300 text-sm font-semibold text-gray-800 transition hover:bg-yellow-500 hover:text-white hover:border-yellow-500 disabled:opacity-70 disabled:cursor-not-allowed disabled:bg-gray-100 shadow-sm active:scale-95"
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  Ajouter au panier
-                </button>
-              </div>
-            </div>
-          </motion.article>
+                  <div className="mt-2 flex flex-col gap-1">
+                    {p.sizes && p.sizes.length > 0 && (
+                      <span className="text-base font-bold text-yellow-600">
+                        {Math.min(...p.sizes.map((s) => s.price)).toLocaleString("fr-DZ")} DA
+                      </span>
+                    )}
+                    {p.inStock === false && (
+                      <span className="text-xs text-red-500">Non disponible</span>
+                    )}
+                    {p.sizes && p.sizes.length > 1 && (
+                      <span className="text-xs text-gray-500">
+                        {p.sizes.length} tailles disponibles
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={(e) => handleQuickAdd(e, p)}
+                    disabled={p.inStock === false}
+                    className="mt-3 w-full py-2 flex items-center justify-center gap-2 rounded-md bg-white border border-gray-200 text-sm font-semibold text-gray-800 transition hover:bg-yellow-500 hover:text-white hover:border-yellow-500 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm active:scale-95"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    Ajouter au panier
+                  </button>
+                </div>
+              </article>
+            </TiltCard3D>
+          </motion.div>
         ))}
       </motion.div>
 
