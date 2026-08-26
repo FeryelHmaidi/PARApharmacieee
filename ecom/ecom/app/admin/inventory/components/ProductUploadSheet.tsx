@@ -159,7 +159,13 @@ export default function ProductUploadSheet({
   const [previews, setPreviews] = useState<string[]>([]);
   const [brandLogoFile, setBrandLogoFile] = useState<File | null>(null);
   const [brandLogoPreview, setBrandLogoPreview] = useState<string | null>(null);
+  const [selectedBrandLogoUrl, setSelectedBrandLogoUrl] = useState<string | null>(null);
   const [removedBrandLogo, setRemovedBrandLogo] = useState(false);
+
+  const activeBrandLogoUrl = removedBrandLogo
+    ? null
+    : (selectedBrandLogoUrl ?? (initialProduct as any)?.brand_logo_url ?? null);
+
   const [existingPhotos, setExistingPhotos] =
     useState<ExistingPhotoState[]>(buildInitialPhotos);
   const [removedVariantIds, setRemovedVariantIds] = useState<string[]>([]);
@@ -399,6 +405,7 @@ export default function ProductUploadSheet({
     setBrandLogoFile(file);
     if (brandLogoPreview) URL.revokeObjectURL(brandLogoPreview);
     setBrandLogoPreview(URL.createObjectURL(file));
+    setSelectedBrandLogoUrl(null);
     setRemovedBrandLogo(false);
   };
 
@@ -406,6 +413,7 @@ export default function ProductUploadSheet({
     setBrandLogoFile(null);
     if (brandLogoPreview) URL.revokeObjectURL(brandLogoPreview);
     setBrandLogoPreview(null);
+    setSelectedBrandLogoUrl(null);
     if (brandLogoRef.current) brandLogoRef.current.value = "";
     setRemovedBrandLogo(true);
   };
@@ -455,6 +463,7 @@ export default function ProductUploadSheet({
     setBrandLogoFile(null);
     if (brandLogoPreview) URL.revokeObjectURL(brandLogoPreview);
     setBrandLogoPreview(null);
+    setSelectedBrandLogoUrl((target as any)?.brand_logo_url ?? null);
     setRemovedBrandLogo(false);
 
     if (inputRef.current) inputRef.current.value = "";
@@ -595,6 +604,10 @@ export default function ProductUploadSheet({
 
     const uniqueSelectedTagIds = Array.from(new Set(finalTagIds));
 
+    const activeBrandLogoUrl = removedBrandLogo
+      ? null
+      : (selectedBrandLogoUrl ?? (initialProduct as any)?.brand_logo_url ?? null);
+
     try {
       if (isEditMode && initialProduct?.id) {
         const highestPosition = keptExisting.reduce(
@@ -611,6 +624,7 @@ export default function ProductUploadSheet({
           sku: trimmedSku,
           description: descriptionValue,
           brand: brand.trim() ? brand.trim() : null,
+          brand_logo_url: activeBrandLogoUrl,
           best_seller: bestSeller,
           status,
           variants: normalizedVariants,
@@ -634,6 +648,7 @@ export default function ProductUploadSheet({
         sku: trimmedSku,
         description: descriptionValue,
         brand: brand.trim() ? brand.trim() : null,
+        brand_logo_url: activeBrandLogoUrl,
         best_seller: bestSeller,
         status,
         variants: normalizedVariants.map(
@@ -871,38 +886,103 @@ export default function ProductUploadSheet({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="product-brand">Marque</Label>
-                <Select value={brand || undefined} onValueChange={(val) => {
-                  setBrand(val);
-                  // Automatically set logo if brand has one
-                  const selectedBrand = dictBrands.find(b => b.name === val);
-                  if (selectedBrand && selectedBrand.brand_logo_url && !brandLogoFile) {
-                    // We don't need to auto-upload it since it's already a URL
-                    // But our form expects a File for brandLogo if changed.
-                    // We can just let the system keep the existing product URL or upload a new one.
-                    // Actually, if we just want to reuse the brand's logo, we can let the backend handle it
-                    // or we set it as preview for visual feedback.
-                  }
-                }}>
-                  <SelectTrigger id="product-brand">
+                <Select
+                  value={brand || undefined}
+                  onValueChange={(val) => {
+                    setBrand(val);
+                    const selectedBrand = dictBrands.find((b) => b.name === val);
+                    if (selectedBrand?.brand_logo_url) {
+                      setSelectedBrandLogoUrl(selectedBrand.brand_logo_url);
+                      setRemovedBrandLogo(false);
+                      if (brandLogoFile) {
+                        setBrandLogoFile(null);
+                        if (brandLogoPreview) URL.revokeObjectURL(brandLogoPreview);
+                        setBrandLogoPreview(null);
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger id="product-brand" className="bg-white">
                     <SelectValue placeholder="Sélectionnez une marque" />
                   </SelectTrigger>
                   <SelectContent>
-                    {dictBrands.map(b => (
-                      <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
+                    {dictBrands.map((b) => (
+                      <SelectItem key={b.id} value={b.name}>
+                        <div className="flex items-center gap-2">
+                          {b.brand_logo_url && (
+                            <img
+                              src={b.brand_logo_url}
+                              alt={b.name}
+                              className="h-4 w-5 object-contain rounded border bg-white"
+                            />
+                          )}
+                          <span>{b.name}</span>
+                        </div>
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label>Logo de la marque (Optionnel)</Label>
-                <div className="flex items-center gap-4">
+                <Label htmlFor="product-brand-logo">Logo de la marque (Optionnel)</Label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <Select
+                      value={
+                        brandLogoFile
+                          ? "custom_upload"
+                          : activeBrandLogoUrl || "none"
+                      }
+                      onValueChange={(val) => {
+                        if (val === "none") {
+                          setSelectedBrandLogoUrl(null);
+                          setRemovedBrandLogo(true);
+                          setBrandLogoFile(null);
+                          if (brandLogoPreview) URL.revokeObjectURL(brandLogoPreview);
+                          setBrandLogoPreview(null);
+                        } else if (val !== "custom_upload") {
+                          setSelectedBrandLogoUrl(val);
+                          setRemovedBrandLogo(false);
+                          setBrandLogoFile(null);
+                          if (brandLogoPreview) URL.revokeObjectURL(brandLogoPreview);
+                          setBrandLogoPreview(null);
+                        }
+                      }}
+                    >
+                      <SelectTrigger id="product-brand-logo" className="bg-white">
+                        <SelectValue placeholder="Choisir un logo de marque" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Aucun logo</SelectItem>
+                        {brandLogoFile && (
+                          <SelectItem value="custom_upload">Logo personnalisé (uploadé)</SelectItem>
+                        )}
+                        {dictBrands
+                          .filter((b) => Boolean(b.brand_logo_url))
+                          .map((b) => (
+                            <SelectItem key={b.id} value={b.brand_logo_url!}>
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={b.brand_logo_url!}
+                                  alt={b.name}
+                                  className="h-4 w-6 object-contain rounded border bg-white"
+                                />
+                                <span>{b.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <label
                     htmlFor="brand-logo-input"
-                    className="flex h-10 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm transition hover:bg-accent hover:text-accent-foreground"
+                    className="flex h-10 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-xs font-medium shadow-sm transition hover:bg-accent hover:text-accent-foreground shrink-0"
+                    title="Uploader un fichier logo depuis votre appareil"
                   >
-                    <Camera className="mr-2 h-4 w-4 text-gray-600" />
-                    Upload Logo
+                    <Camera className="mr-1.5 h-4 w-4 text-gray-600" />
+                    Upload
                     <input
                       ref={brandLogoRef}
                       id="brand-logo-input"
@@ -912,32 +992,23 @@ export default function ProductUploadSheet({
                       onChange={(e) => onBrandLogoFile(e.target.files)}
                     />
                   </label>
-                  {brandLogoPreview && !removedBrandLogo ? (
-                    <div className="relative h-10 w-20 rounded border bg-gray-50 overflow-hidden">
-                      <img src={brandLogoPreview} alt="Brand Logo Preview" className="h-full w-full object-contain" />
+
+                  {(brandLogoPreview || (activeBrandLogoUrl && !removedBrandLogo)) && (
+                    <div className="relative h-10 w-14 shrink-0 rounded border bg-gray-50 overflow-hidden flex items-center justify-center p-0.5">
+                      <img
+                        src={brandLogoPreview || activeBrandLogoUrl!}
+                        alt="Logo Preview"
+                        className="max-h-full max-w-full object-contain"
+                      />
                       <button
                         type="button"
                         onClick={removeBrandLogoFile}
-                        className="absolute right-0 top-0 rounded-bl bg-white/90 p-0.5 shadow-sm hover:bg-white"
-                        aria-label="Remove logo"
+                        className="absolute right-0 top-0 rounded-bl bg-white/90 p-0.5 shadow-sm hover:bg-white text-red-500"
+                        title="Supprimer ce logo"
                       >
-                        <Trash2 className="h-3 w-3 text-red-500" />
+                        <Trash2 className="h-3 w-3" />
                       </button>
                     </div>
-                  ) : initialProduct?.brand_logo_url && !removedBrandLogo ? (
-                    <div className="relative h-10 w-20 rounded border bg-gray-50 overflow-hidden">
-                      <img src={initialProduct.brand_logo_url} alt="Brand Logo" className="h-full w-full object-contain" />
-                      <button
-                        type="button"
-                        onClick={() => setRemovedBrandLogo(true)}
-                        className="absolute right-0 top-0 rounded-bl bg-white/90 p-0.5 shadow-sm hover:bg-white"
-                        aria-label="Remove logo"
-                      >
-                        <Trash2 className="h-3 w-3 text-red-500" />
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-gray-400">Aucun logo</span>
                   )}
                 </div>
               </div>
