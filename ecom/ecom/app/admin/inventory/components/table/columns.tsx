@@ -113,19 +113,44 @@ export const inventoryColumns: ColumnDef<Product>[] = [
           : variants.length > 1
           ? `${variants.length} variants`
           : "";
+
+      const fullName = (p.name ?? "").trim();
+      const words = fullName.split(/\s+/).filter(Boolean);
+      const isLong = words.length > 2 || fullName.length > 20;
+      const displayName = isLong ? words.slice(0, 2).join(" ") : fullName;
+
       return (
-        <div className="text-start">
-          <div>
-            <div className="font-medium text-sm">{p.name}</div>
-            <div className="text-xs text-muted-foreground">SKU • {p.sku}</div>
-            {primaryLabel && (
-              <div className="text-xs text-gray-500">{primaryLabel}</div>
-            )}
-          </div>
+        <div className="text-start max-w-[200px]">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-pointer group inline-block max-w-full">
+                  <span className="font-medium text-sm text-gray-900 group-hover:text-yellow-700 transition-colors">
+                    {displayName}
+                  </span>
+                  {isLong && (
+                    <span className="text-xs text-yellow-600 font-normal ml-1 whitespace-nowrap">
+                      ... (voir plus)
+                    </span>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs p-2.5 text-xs leading-snug font-medium shadow-md">
+                <p className="font-semibold text-gray-900 text-sm">{fullName}</p>
+                {p.sku && <p className="text-[11px] text-gray-500 mt-1">SKU : {p.sku}</p>}
+                {primaryLabel && <p className="text-[11px] text-yellow-700 mt-0.5">{primaryLabel}</p>}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <div className="text-xs text-muted-foreground mt-0.5">SKU • {p.sku}</div>
+          {primaryLabel && (
+            <div className="text-xs text-gray-500">{primaryLabel}</div>
+          )}
         </div>
       );
     },
-    size: 320,
+    size: 220,
   },
 
   {
