@@ -76,19 +76,16 @@ export default function ClientSidebarMenu({ onClose }: { onClose: () => void }) 
                     )}
                   </div>
                   
-                  {/* Sous-catégories explicitement affichées */}
+                  {/* Sous-catégories affichées directement */}
                   {catSubcats.length > 0 && isCatOpen && (
                     <div className="mt-2 pl-3 border-l-2 border-yellow-200 ml-1">
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
-                        Sous-catégories
-                      </span>
                       <ul className="flex flex-col gap-2">
                         {catSubcats.map(sub => (
                           <li key={sub.id}>
                             <Link 
                               href={`/products?subcategory=${encodeURIComponent(sub.name)}`} 
                               onClick={onClose}
-                              className="text-gray-500 hover:text-yellow-600 transition-colors text-sm"
+                              className="text-gray-500 hover:text-yellow-600 transition-colors text-sm block py-0.5"
                             >
                               {sub.name}
                             </Link>
