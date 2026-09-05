@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, DollarSign, ShoppingBag, ArrowUpRight } from "lucide-react";
+import { Calendar as CalendarIcon, DollarSign, ShoppingBag, Filter } from "lucide-react";
 import type { DashboardOrder } from "../types";
+
+type RangeMode = "preset" | "custom";
 
 const RANGE_OPTIONS = [
   { label: "Aujourd'hui", days: 1 },
@@ -19,7 +21,16 @@ export function RevenueByDateCard({
   orders?: DashboardOrder[];
   isLoading?: boolean;
 }) {
+  const [rangeMode, setRangeMode] = useState<RangeMode>("preset");
   const [selectedRangeDays, setSelectedRangeDays] = useState<number>(7);
+  const [customDateFrom, setCustomDateFrom] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split("T")[0];
+  });
+  const [customDateTo, setCustomDateTo] = useState<string>(() => {
+    return new Date().toISOString().split("T")[0];
+  });
 
   const dailyStats = useMemo(() => {
     if (!orders || orders.length === 0) return [];
@@ -44,24 +55,38 @@ export function RevenueByDateCard({
       }
     >();
 
-    let cutoff: Date | null = null;
-    if (selectedRangeDays === 1) {
-      // Aujourd'hui
-      cutoff = new Date();
-      cutoff.setHours(0, 0, 0, 0);
-    } else if (selectedRangeDays > 0) {
-      cutoff = new Date();
-      cutoff.setDate(now.getDate() - selectedRangeDays);
-      cutoff.setHours(0, 0, 0, 0);
+    let startCutoff: Date | null = null;
+    let endCutoff: Date | null = null;
+
+    if (rangeMode === "custom") {
+      if (customDateFrom) {
+        startCutoff = new Date(customDateFrom);
+        startCutoff.setHours(0, 0, 0, 0);
+      }
+      if (customDateTo) {
+        endCutoff = new Date(customDateTo);
+        endCutoff.setHours(23, 59, 59, 999);
+      }
     } else {
-      // Ce mois-ci
-      cutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+      if (selectedRangeDays === 1) {
+        // Aujourd'hui
+        startCutoff = new Date();
+        startCutoff.setHours(0, 0, 0, 0);
+      } else if (selectedRangeDays > 0) {
+        startCutoff = new Date();
+        startCutoff.setDate(now.getDate() - selectedRangeDays);
+        startCutoff.setHours(0, 0, 0, 0);
+      } else {
+        // Ce mois-ci
+        startCutoff = new Date(now.getFullYear(), now.getMonth(), 1);
+      }
     }
 
     (orders ?? []).forEach((order) => {
       if (!order.created_at) return;
       const orderDate = new Date(order.created_at);
-      if (cutoff && orderDate < cutoff) return;
+      if (startCutoff && orderDate < startCutoff) return;
+      if (endCutoff && orderDate > endCutoff) return;
 
       const dateKey = orderDate.toISOString().split("T")[0]; // YYYY-MM-DD
       const dateFormatted = orderDate.toLocaleDateString("fr-FR", {
@@ -105,7 +130,7 @@ export function RevenueByDateCard({
             ? formatter.format(item.revenue / item.ordersCount)
             : "0,00 TND",
       }));
-  }, [orders, selectedRangeDays]);
+  }, [orders, rangeMode, selectedRangeDays, customDateFrom, customDateTo]);
 
   const totalPeriodRevenue = useMemo(() => {
     return dailyStats.reduce((sum, item) => sum + item.revenue, 0);
@@ -135,32 +160,72 @@ export function RevenueByDateCard({
 
   return (
     <Card className="bg-white shadow-sm border rounded-2xl">
-      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-4">
+      <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pb-4">
         <div>
           <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-yellow-600" />
             Chiffre d'affaires par date
           </CardTitle>
           <p className="text-xs text-slate-500 mt-1">
-            Total période : <span className="font-bold text-yellow-700">{formattedTotal}</span>
+            Total période : <span className="font-bold text-yellow-700 text-sm">{formattedTotal}</span>
           </p>
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-medium self-start sm:self-auto">
-          {RANGE_OPTIONS.map((opt) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-medium">
+            {RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => {
+                  setRangeMode("preset");
+                  setSelectedRangeDays(opt.days);
+                }}
+                className={`px-3 py-1.5 rounded-lg transition ${
+                  rangeMode === "preset" && selectedRangeDays === opt.days
+                    ? "bg-white text-yellow-800 shadow-xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
             <button
-              key={opt.label}
               type="button"
-              onClick={() => setSelectedRangeDays(opt.days)}
-              className={`px-3 py-1.5 rounded-lg transition ${
-                selectedRangeDays === opt.days
+              onClick={() => setRangeMode("custom")}
+              className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1 ${
+                rangeMode === "custom"
                   ? "bg-white text-yellow-800 shadow-xs font-semibold"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              {opt.label}
+              <Filter className="w-3 h-3" />
+              Personnalisé
             </button>
-          ))}
+          </div>
+
+          {rangeMode === "custom" && (
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-1.5 rounded-xl text-xs">
+              <div className="flex items-center gap-1">
+                <span className="text-slate-500 font-medium">Du:</span>
+                <input
+                  type="date"
+                  value={customDateFrom}
+                  onChange={(e) => setCustomDateFrom(e.target.value)}
+                  className="bg-white border border-slate-200 rounded px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-slate-500 font-medium">Au:</span>
+                <input
+                  type="date"
+                  value={customDateTo}
+                  onChange={(e) => setCustomDateTo(e.target.value)}
+                  className="bg-white border border-slate-200 rounded px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-yellow-500"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </CardHeader>
 
@@ -185,7 +250,7 @@ export function RevenueByDateCard({
                 {dailyStats.map((row) => (
                   <tr key={row.dateIso} className="hover:bg-slate-50/60 transition">
                     <td className="py-3 px-3 font-medium text-slate-900 flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-slate-400" />
+                      <CalendarIcon className="h-4 w-4 text-slate-400" />
                       <span className="capitalize">{row.dateFormatted}</span>
                     </td>
                     <td className="py-3 px-3 text-right font-bold text-emerald-700">
@@ -213,3 +278,4 @@ export function RevenueByDateCard({
     </Card>
   );
 }
+
