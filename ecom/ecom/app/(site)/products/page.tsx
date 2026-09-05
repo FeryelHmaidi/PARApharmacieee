@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import CategorySlider from "@/components/CategorySlider";
 import ProductGrid, { Product as GridProduct } from "@/components/ProductGrid";
@@ -155,8 +156,10 @@ const formatPrice = (value: number) =>
     .format(value)
     .replace("TND", "Dt");
 
-const ProductPage: React.FC = () => {
+function ProductsContent() {
   const supabase = useMemo(() => createClientComponentClient<Database>(), []);
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [inventoryProducts, setInventoryProducts] = useState<
     StorefrontProduct[]
@@ -164,25 +167,16 @@ const ProductPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // DB categories, subcategories, brands
+  const [dbCategories, setDbCategories] = useState<{ id: string; name: string }[]>([]);
+  const [dbSubcategories, setDbSubcategories] = useState<{ id: string; name: string; category_id: string | null }[]>([]);
+  const [dbBrands, setDbBrands] = useState<{ id: string; name: string }[]>([]);
+
   const [selectedCategory, setSelectedCategory] =
     useState<SliderCategory | null>(null);
   const [search, setSearch] = useState("");
   const [sortOption, setSortOption] = useState("pertinence");
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const searchParam = params.get("search");
-      const brandParam = params.get("brand");
-      const catParam = params.get("category");
-      const subcatParam = params.get("subcategory");
-
-      if (searchParam) setSearch(searchParam);
-      if (brandParam) setSelectedBrands([brandParam]);
-      if (catParam) setSelectedCats([catParam]);
-      if (subcatParam) setSelectedSubcats([subcatParam]);
-    }
-  }, []);
   const [onlyInStock, setOnlyInStock] = useState(false);
   const [bestSellerOnly, setBestSellerOnly] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -194,6 +188,38 @@ const ProductPage: React.FC = () => {
   const [maxPrice, setMaxPrice] = useState(0);
   const [priceInitialized, setPriceInitialized] = useState(false);
   const [visibleCount, setVisibleCount] = useState(16);
+
+  // Fetch DB dictionaries
+  useEffect(() => {
+    const loadDictionaries = async () => {
+      try {
+        const [catsRes, subcatsRes, brandsRes] = await Promise.all([
+          supabase.from("categories").select("id, name").order("name"),
+          supabase.from("subcategories").select("id, name, category_id").order("name"),
+          supabase.from("brands").select("id, name").order("name"),
+        ]);
+        if (catsRes.data) setDbCategories(catsRes.data);
+        if (subcatsRes.data) setDbSubcategories(subcatsRes.data);
+        if (brandsRes.data) setDbBrands(brandsRes.data);
+      } catch (e) {
+        console.error("Error loading dictionaries:", e);
+      }
+    };
+    loadDictionaries();
+  }, [supabase]);
+
+  // Sync state reactively whenever URL searchParams change
+  useEffect(() => {
+    const searchParam = searchParams.get("search");
+    const brandParam = searchParams.get("brand");
+    const catParam = searchParams.get("category");
+    const subcatParam = searchParams.get("subcategory");
+
+    setSearch(searchParam || "");
+    setSelectedBrands(brandParam ? [brandParam] : []);
+    setSelectedCats(catParam ? [catParam] : []);
+    setSelectedSubcats(subcatParam ? [subcatParam] : []);
+  }, [searchParams]);
 
   useEffect(() => {
     setVisibleCount(16);
@@ -323,30 +349,34 @@ const ProductPage: React.FC = () => {
   }, [inventoryProducts]);
 
   const availableCategories = useMemo(() => {
-    const items = new Set<string>();
-    inventoryProducts.forEach((p) => {
-      const cat = (p as any).category;
-      if (cat) items.add(cat);
-    });
-    return Array.from(items).sort((a, b) => a.localeCompare(b, "fr"));
-  }, [inventoryProducts]);
+    const names = new Set<string>();
+    dbCategories.forEach((c) => names.add(c.name));
+    return Array.from(names).sort((a, b) => a.localeCompare(b, "fr"));
+  }, [dbCategories]);
 
   const availableSubcategories = useMemo(() => {
-    const items = new Set<string>();
-    inventoryProducts.forEach((p) => {
-      const subcat = (p as any).sub_category || (p as any).subcategory;
-      if (subcat) items.add(subcat);
-    });
-    return Array.from(items).sort((a, b) => a.localeCompare(b, "fr"));
-  }, [inventoryProducts]);
+    const names = new Set<string>();
+    if (selectedCats.length > 0) {
+      const matchedCatIds = dbCategories
+        .filter((c) => selectedCats.some((sc) => sc.toLowerCase() === c.name.toLowerCase()))
+        .map((c) => c.id);
+      dbSubcategories
+        .filter((sub) => sub.category_id && matchedCatIds.includes(sub.category_id))
+        .forEach((sub) => names.add(sub.name));
+    } else {
+      dbSubcategories.forEach((sub) => names.add(sub.name));
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b, "fr"));
+  }, [dbCategories, dbSubcategories, selectedCats]);
 
   const availableBrands = useMemo(() => {
-    const items = new Set<string>();
+    const names = new Set<string>();
+    dbBrands.forEach((b) => names.add(b.name));
     inventoryProducts.forEach((p) => {
-      if (p.brand) items.add(p.brand);
+      if (p.brand) names.add(p.brand);
     });
-    return Array.from(items).sort((a, b) => a.localeCompare(b, "fr"));
-  }, [inventoryProducts]);
+    return Array.from(names).sort((a, b) => a.localeCompare(b, "fr"));
+  }, [dbBrands, inventoryProducts]);
 
   useEffect(() => {
     if (!inventoryProducts.length) return;
@@ -402,7 +432,8 @@ const ProductPage: React.FC = () => {
       setMinPrice(priceBounds.min);
       setMaxPrice(priceBounds.max);
     }
-  }, [priceBounds]);
+    router.push("/products");
+  }, [priceBounds, router]);
 
   const handleSizeToggle = useCallback((sizeLabel: string) => {
     setSelectedSizes((prev) =>
@@ -421,15 +452,21 @@ const ProductPage: React.FC = () => {
   }, []);
 
   const handleCatToggle = useCallback((cat: string) => {
-    setSelectedCats((prev) => prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]);
+    setSelectedCats((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
   }, []);
 
   const handleSubcatToggle = useCallback((subcat: string) => {
-    setSelectedSubcats((prev) => prev.includes(subcat) ? prev.filter((s) => s !== subcat) : [...prev, subcat]);
+    setSelectedSubcats((prev) =>
+      prev.includes(subcat) ? prev.filter((s) => s !== subcat) : [...prev, subcat]
+    );
   }, []);
 
   const handleBrandToggle = useCallback((brand: string) => {
-    setSelectedBrands((prev) => prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]);
+    setSelectedBrands((prev) =>
+      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
+    );
   }, []);
 
   const filteredProducts = useMemo(() => {
@@ -465,17 +502,44 @@ const ProductPage: React.FC = () => {
         if (!matchesTag) return false;
       }
 
+      // Filter by Category: checks product tags against category name or any of its subcategories
       if (selectedCats.length) {
-        if (!selectedCats.includes((product as any).category)) return false;
+        const relatedSubcats = dbSubcategories
+          .filter((sub) => {
+            const parentCat = dbCategories.find((c) => c.id === sub.category_id);
+            return (
+              parentCat &&
+              selectedCats.some((sc) => sc.toLowerCase() === parentCat.name.toLowerCase())
+            );
+          })
+          .map((sub) => sub.name.toLowerCase());
+
+        const allowedKeywords = [
+          ...selectedCats.map((c) => c.toLowerCase()),
+          ...relatedSubcats,
+        ];
+
+        const matchesCat = product.tagNames.some((tag) =>
+          allowedKeywords.includes(tag.toLowerCase())
+        );
+        if (!matchesCat) return false;
       }
 
+      // Filter by Subcategory: checks product tags directly against subcategory name
       if (selectedSubcats.length) {
-        const subcat = (product as any).sub_category || (product as any).subcategory;
-        if (!selectedSubcats.includes(subcat)) return false;
+        const targetSubcats = selectedSubcats.map((s) => s.toLowerCase());
+        const matchesSubcat = product.tagNames.some((tag) =>
+          targetSubcats.includes(tag.toLowerCase())
+        );
+        if (!matchesSubcat) return false;
       }
 
+      // Filter by Brand
       if (selectedBrands.length) {
-        if (!product.brand || !selectedBrands.includes(product.brand)) return false;
+        const targetBrands = selectedBrands.map((b) => b.toLowerCase());
+        if (!product.brand || !targetBrands.includes(product.brand.toLowerCase())) {
+          return false;
+        }
       }
 
       const priceMatch = hasVariants
@@ -517,6 +581,8 @@ const ProductPage: React.FC = () => {
     selectedCats,
     selectedSubcats,
     selectedBrands,
+    dbCategories,
+    dbSubcategories,
   ]);
 
   const gridProducts = useMemo(() => {
@@ -647,6 +713,13 @@ const ProductPage: React.FC = () => {
       </div>
     </main>
   );
-};
+}
 
-export default ProductPage;
+export default function ProductPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen py-32 text-center text-gray-400">Chargement...</div>}>
+      <ProductsContent />
+    </Suspense>
+  );
+}
+
