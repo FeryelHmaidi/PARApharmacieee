@@ -108,7 +108,7 @@ export default function Table() {
     }
 
     return (
-      <div className="px-4 py-2">
+      <div className="px-2 sm:px-3 py-2">
         <DataTable
           columns={inventoryColumns}
           data={sortedProducts}
@@ -118,8 +118,8 @@ export default function Table() {
   };
 
   return (
-    <div className="w-full py-6">
-      <Card className="overflow-hidden">{renderInner()}</Card>
+    <div className="w-full py-2">
+      <Card className="overflow-hidden border border-slate-200 shadow-xs">{renderInner()}</Card>
     </div>
   );
 }
