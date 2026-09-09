@@ -6,6 +6,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  PaginationState,
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
@@ -18,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Search,
@@ -46,7 +47,10 @@ export function DataTable<TData, TValue>({
   const [categoryFilter, setCategoryFilter] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [pageSize, setPageSize] = useState<number>(10);
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
   const filteredData = useMemo(() => {
     return (data as any[]).filter((product) => {
@@ -89,17 +93,20 @@ export function DataTable<TData, TValue>({
     });
   }, [data, nameFilter, categoryFilter, brandFilter]);
 
+  // Reset pageIndex when filter inputs change
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [nameFilter, categoryFilter, brandFilter]);
+
   const table = useReactTable({
     data: filteredData as TData[],
     columns,
     state: {
       sorting,
-      pagination: {
-        pageIndex: 0,
-        pageSize: pageSize >= 9999 ? filteredData.length || 1 : pageSize,
-      },
+      pagination,
     },
     onSortingChange: setSorting,
+    onPaginationChange: setPagination,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -230,11 +237,13 @@ export function DataTable<TData, TValue>({
           <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
             <span className="text-slate-500">Lignes par page :</span>
             <select
-              value={pageSize}
+              value={pagination.pageSize >= 9999 ? 9999 : pagination.pageSize}
               onChange={(e) => {
                 const val = Number(e.target.value);
-                setPageSize(val);
-                table.setPageSize(val >= 9999 ? filteredData.length || 1 : val);
+                setPagination({
+                  pageIndex: 0,
+                  pageSize: val >= 9999 ? Math.max(filteredData.length, 1) : val,
+                });
               }}
               className="bg-white border border-slate-200 rounded-md px-2 py-1 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-yellow-500 cursor-pointer shadow-2xs"
             >
