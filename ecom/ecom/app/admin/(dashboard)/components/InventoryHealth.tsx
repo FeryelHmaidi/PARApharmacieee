@@ -81,9 +81,9 @@ const buildExpiryRows = (
         subtitle: `${toSizeLabel(variant)} • expires ${formatExpiryLabel(
           diffDays
         )}`,
-        meta: expiryDate.toLocaleDateString("en-US", {
-          month: "short",
+        meta: expiryDate.toLocaleDateString("fr-FR", {
           day: "numeric",
+          month: "short",
         }),
         sortValue: expiryDate.getTime(),
       });

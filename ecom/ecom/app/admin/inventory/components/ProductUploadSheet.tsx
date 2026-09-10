@@ -74,7 +74,7 @@ const createVariantFormState = (variant?: VariantRow): VariantFormState => ({
   price: variant ? String(variant.price ?? "").replace('.', ',') : "",
   currency: variant?.currency ?? DEFAULT_CURRENCY,
   stock: variant ? String(variant.stock ?? "") : "",
-  expiry: variant?.expiry_date ?? "",
+  expiry: variant?.expiry_date ? variant.expiry_date.split("T")[0] : "",
   sizeValue:
     variant && variant.size_value != null ? String(variant.size_value) : "",
   sizeUnit: (variant?.size_unit as SizeUnit | "") ?? "",

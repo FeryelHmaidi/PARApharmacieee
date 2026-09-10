@@ -57,16 +57,17 @@ const computeTotalStock = (variants: VariantRow[]): number =>
   variants.reduce((sum, variant) => sum + (variant.stock ?? 0), 0);
 
 const computeNearestExpiry = (variants: VariantRow[]): string | null => {
-  const dates = variants
-    .map((variant) =>
-      variant.expiry_date ? new Date(variant.expiry_date) : null
-    )
+  const validVariants = variants
     .filter(
-      (date): date is Date => date instanceof Date && !isNaN(date.valueOf())
+      (v) => !!v.expiry_date && !isNaN(new Date(v.expiry_date).getTime())
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.expiry_date!).getTime() - new Date(b.expiry_date!).getTime()
     );
-  if (!dates.length) return null;
-  dates.sort((a, b) => a.getTime() - b.getTime());
-  return dates[0].toISOString();
+
+  if (!validVariants.length) return null;
+  return validVariants[0].expiry_date ?? null;
 };
 
 export const useFetchProducts = () => {

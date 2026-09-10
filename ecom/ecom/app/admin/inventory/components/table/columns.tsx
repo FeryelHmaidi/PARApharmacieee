@@ -32,7 +32,15 @@ const currencyFormat = (
 const formatDate = (iso?: string | null) => {
   if (!iso) return "—";
   try {
-    return format(new Date(iso), "P");
+    const clean = iso.split("T")[0];
+    const parts = clean.split("-");
+    if (parts.length === 3 && parts[0].length === 4) {
+      const [year, month, day] = parts;
+      return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+    }
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return format(d, "dd/MM/yyyy");
   } catch {
     return iso;
   }

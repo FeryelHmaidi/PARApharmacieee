@@ -58,7 +58,13 @@ const formatCurrency = (value: number, currency: string = DEFAULT_CURRENCY) =>
 const formatExpiry = (value?: string | null) => {
   if (!value) return "—";
   try {
-    return format(new Date(value), "LLL d, yyyy");
+    const clean = value.split("T")[0];
+    const parts = clean.split("-");
+    if (parts.length === 3 && parts[0].length === 4) {
+      const [year, month, day] = parts;
+      return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+    }
+    return format(new Date(value), "dd/MM/yyyy");
   } catch {
     return value;
   }
@@ -139,7 +145,7 @@ export const ActionsCell = ({ product }: { product: Product }) => {
     const current = variants.find((v) => v.id === selectedVariant);
     if (current) {
       setEditPrice(current.price);
-      setEditExpiry(current.expiry_date ?? "");
+      setEditExpiry(current.expiry_date ? current.expiry_date.split("T")[0] : "");
       setEditCurrency(current.currency ?? DEFAULT_CURRENCY);
     }
   }, [editVarOpen, selectedVariant, variants]);
