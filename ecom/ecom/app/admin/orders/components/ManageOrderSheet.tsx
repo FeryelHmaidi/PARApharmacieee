@@ -22,6 +22,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Search, Trash2 } from "lucide-react";
 import { Constants } from "@/types/supabase";
 import type {
@@ -63,7 +69,43 @@ const fallbackProductName = (productId?: string | null, index?: number) => {
   return index !== undefined ? `Article ${index + 1}` : "Article";
 };
 
-const STATUS_OPTIONS = Constants.public.Enums.order_status;
+const STATUS_OPTIONS = [...Constants.public.Enums.order_status, "tentative"] as const;
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "En attente",
+  tentative: "Tentative (Sans réponse)",
+  confirmed: "Confirmé",
+  processing: "Téléchargé",
+  shipped: "Emballé / Expédié",
+  delivered: "Livré",
+  cancelled: "Annulé",
+  returned: "Retourné",
+};
+
+const renderTruncatedCatalogName = (name: string) => {
+  const words = name.trim().split(/\s+/);
+  if (words.length <= 4 && name.length <= 32) {
+    return <span className="font-medium text-slate-900 leading-tight">{name}</span>;
+  }
+  const shortName = words.slice(0, 3).join(" ");
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="font-medium text-slate-900 leading-tight cursor-pointer inline-flex items-center gap-1 hover:underline">
+            <span>{shortName}</span>
+            <span className="text-yellow-700 font-semibold text-xs whitespace-nowrap">
+              ... (voir plus)
+            </span>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs font-normal">
+          {name}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
 const PAYMENT_STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
   { value: "awaiting_payment", label: "Awaiting payment" },
@@ -420,6 +462,11 @@ export function ManageOrderSheet({
       return;
     }
 
+    if (form.status === "confirmed" && !form.deliveryCompany) {
+      toast.error("Veuillez sélectionner une société de livraison pour confirmer la commande.");
+      return;
+    }
+
     // Auto-transition : Si la commande est confirmée et qu'une société de livraison est assignée,
     // son statut devient automatiquement 'processing' (Téléchargé) pour la transmission à la société.
     let statusToSave = form.status;
@@ -455,7 +502,7 @@ export function ManageOrderSheet({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       {trigger ? <SheetTrigger asChild>{trigger}</SheetTrigger> : null}
-      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+      <SheetContent className="w-full overflow-y-auto sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
         <form onSubmit={handleSubmit} className="flex h-full flex-col">
           <SheetHeader className="text-left">
             <SheetTitle>{isOrderLocked ? "Détails de la commande (Verrouillée)" : title}</SheetTitle>
@@ -596,10 +643,8 @@ export function ManageOrderSheet({
                         className="flex items-center justify-between gap-3 rounded-xl border bg-white/80 p-3 shadow-sm"
                       >
                         <div className="min-w-0">
-                          <p className="font-medium leading-tight line-clamp-1">
-                            {variant.productName}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
+                          {renderTruncatedCatalogName(variant.productName)}
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             {variant.label} • {variant.stock} in stock
                           </p>
                         </div>
@@ -719,7 +764,7 @@ export function ManageOrderSheet({
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <Label>Status</Label>
+                <Label>Statut</Label>
                 <Select
                   value={form.status}
                   onValueChange={(value) =>
@@ -727,26 +772,28 @@ export function ManageOrderSheet({
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Status" />
+                    <SelectValue placeholder="Statut" />
                   </SelectTrigger>
                   <SelectContent>
                     {STATUS_OPTIONS.map((status) => (
                       <SelectItem key={status} value={status}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                        {STATUS_LABELS[status] || status}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label>Société de livraison</Label>
+                <Label className={form.status === "confirmed" && !form.deliveryCompany ? "text-amber-800 font-semibold flex items-center gap-1" : ""}>
+                  Société de livraison {form.status === "confirmed" && <span className="text-rose-500 font-bold">* (Obligatoire)</span>}
+                </Label>
                 <Select
                   value={form.deliveryCompany || "none"}
                   onValueChange={(value) =>
                     handleChange("deliveryCompany", value === "none" ? null : value)
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={form.status === "confirmed" && !form.deliveryCompany ? "border-amber-400 bg-amber-50 ring-2 ring-amber-400 font-medium text-amber-900" : ""}>
                     <SelectValue placeholder="Sélectionner..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -758,6 +805,11 @@ export function ManageOrderSheet({
                     ))}
                   </SelectContent>
                 </Select>
+                {form.status === "confirmed" && !form.deliveryCompany && (
+                  <p className="text-[11px] text-amber-700 font-semibold mt-1">
+                    ⚠️ Veuillez obligatoirement choisir une société de livraison pour confirmer.
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Frais de livraison (DT)</Label>
@@ -775,14 +827,25 @@ export function ManageOrderSheet({
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="notes">Notes</Label>
+            <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="notes" className="font-semibold text-slate-900 flex items-center gap-1.5 text-xs">
+                  🔒 Note privée / interne (Admin & Service de confirmation)
+                </Label>
+                <span className="text-[10px] bg-amber-200/60 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                  Privé
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Note confidentielle partagée entre l'équipe administrative et le service de confirmation (ex: "Tentative d'appel 1 effectuée - sans réponse", "Client demande livraison après 14h").
+              </p>
               <Textarea
                 id="notes"
-                rows={4}
+                rows={3}
                 value={form.notes ?? ""}
                 onChange={(event) => handleChange("notes", event.target.value)}
-                placeholder="Add delivery notes, instructions, etc."
+                placeholder="Ex: Tentative d'appel 1 sans réponse, à rappeler..."
+                className="bg-white border-amber-200 focus-visible:ring-amber-500 text-xs"
               />
             </div>
           </div>

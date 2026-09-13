@@ -709,7 +709,7 @@ export default function ProductUploadSheet({
           </SheetTrigger>
         ))}
 
-      <SheetContent className="w-full sm:max-w-xl overflow-x-hidden px-4 sm:px-8">
+      <SheetContent className="w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl overflow-x-hidden px-4 sm:px-8">
         <SheetHeader className="px-0 mt-2">
           <SheetTitle>{sheetTitle}</SheetTitle>
           <SheetDescription className="mt-2">

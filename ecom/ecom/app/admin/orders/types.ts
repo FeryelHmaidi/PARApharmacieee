@@ -8,7 +8,9 @@ export type OrderUpdate =
 export type OrderItemRow =
   PublicDatabase["public"]["Tables"]["order_items"]["Row"];
 export type ProfileRow = PublicDatabase["public"]["Tables"]["profiles"]["Row"];
-export type OrderStatus = PublicDatabase["public"]["Enums"]["order_status"];
+export type OrderStatus =
+  | PublicDatabase["public"]["Enums"]["order_status"]
+  | "tentative";
 
 export type OrderGuestInfo = {
   full_name?: string;
@@ -17,8 +19,16 @@ export type OrderGuestInfo = {
   notes?: string;
 };
 
+export type OrderItemWithProduct = OrderItemRow & {
+  product?: {
+    id: string;
+    name: string;
+    sku?: string | null;
+  } | null;
+};
+
 export type AdminOrder = OrderRow & {
-  order_items: OrderItemRow[];
+  order_items: OrderItemWithProduct[];
   customer_profile?: Pick<
     ProfileRow,
     "id" | "full_name" | "email" | "phone"

@@ -4,6 +4,7 @@ import type { OrderStatus } from "../types";
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
   pending: "bg-amber-100 text-amber-800 border-amber-200",
+  tentative: "bg-orange-100 text-orange-900 border-orange-300 font-semibold",
   confirmed: "bg-blue-100 text-blue-800 border-blue-200",
   processing: "bg-indigo-100 text-indigo-800 border-indigo-200 font-semibold",
   shipped: "bg-emerald-100 text-emerald-800 border-emerald-200 font-bold",
@@ -14,6 +15,7 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
 
 const LABELS: Record<OrderStatus, string> = {
   pending: "En attente",
+  tentative: "Tentative (Sans réponse)",
   confirmed: "Confirmé",
   processing: "Téléchargé",
   shipped: "Emballé / Expédié",

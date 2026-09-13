@@ -29,7 +29,14 @@ export const useOrders = () => {
         .select(
           `
             *,
-            order_items (*),
+            order_items (
+              *,
+              product:products (
+                id,
+                name,
+                sku
+              )
+            ),
             customer_profile:profiles!orders_user_id_fkey (
               id,
               full_name,

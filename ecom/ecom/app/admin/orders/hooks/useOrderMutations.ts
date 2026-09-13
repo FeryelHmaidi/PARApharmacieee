@@ -130,14 +130,67 @@ export const useUpdateOrderStatus = () => {
     mutationFn: async ({
       orderId,
       status,
+      deliveryCompany,
+      notes,
     }: {
       orderId: string;
       status: OrderStatus;
+      deliveryCompany?: string | null;
+      notes?: string | null;
     }) => {
-      const updatePayload =
-        status === "delivered"
-          ? { status, payment_status: "paid" }
-          : { status };
+      const updatePayload: any = { status };
+      if (status === "delivered") {
+        updatePayload.payment_status = "paid";
+      }
+      if (deliveryCompany !== undefined) {
+        updatePayload.delivery_company = deliveryCompany;
+      }
+      if (notes !== undefined) {
+        updatePayload.notes = notes;
+      }
+
+      if (status === "tentative") {
+        try {
+          const { data, error } = await (supabase.from("orders") as any)
+            .update(updatePayload)
+            .eq("id", orderId)
+            .select("id, status")
+            .maybeSingle();
+
+          if (!error && data) return data;
+        } catch {
+          // fall through to fallback
+        }
+
+        // Fallback if Postgres enum doesn't contain 'tentative':
+        const { data: currentOrder } = await (supabase.from("orders") as any)
+          .select("notes")
+          .eq("id", orderId)
+          .maybeSingle();
+        const existingNotes = currentOrder?.notes || "";
+        const updatedNotes = existingNotes.includes("[TENTATIVE")
+          ? existingNotes
+          : `[TENTATIVE - Sans réponse] ${existingNotes}`.trim();
+
+        const fallbackPayload: any = {
+          status: "pending",
+          notes: notes !== undefined ? notes : updatedNotes,
+        };
+        if (deliveryCompany !== undefined) {
+          fallbackPayload.delivery_company = deliveryCompany;
+        }
+
+        const { data: fbData, error: fbError } = await (
+          supabase.from("orders") as any
+        )
+          .update(fallbackPayload)
+          .eq("id", orderId)
+          .select("id, status")
+          .maybeSingle();
+
+        if (fbError) throw new Error(fbError.message);
+        return fbData;
+      }
 
       const { data, error } = await (supabase.from("orders") as any)
         .update(updatePayload)
