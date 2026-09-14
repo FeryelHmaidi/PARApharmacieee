@@ -495,34 +495,17 @@ export default function Navbar() {
   return (
     <>
       <motion.nav
-        className="fixed top-0 z-50 flex flex-col h-auto w-full items-center bg-white/95 backdrop-blur-md border-b border-slate-100/80"
+        className="fixed top-0 z-50 flex h-auto w-full justify-center bg-white/80 py-2 sm:py-3 backdrop-blur-sm"
         initial={{ opacity: 1, y: 0 }}
         animate={{
           opacity: shouldShow ? 1 : 0,
           y: shouldShow ? 0 : -100,
           boxShadow:
-            shouldShow && !isAtTop ? "0 2px 8px rgba(0,0,0,0.06)" : "none",
+            shouldShow && !isAtTop ? "0 2px 4px rgba(0,0,0,0.1)" : "none",
         }}
         transition={{ duration: 0.3 }}
       >
-        {/* Top Announcement Bar */}
-        <div className="w-full bg-gradient-to-r from-yellow-700 via-amber-700 to-yellow-800 text-white text-[11px] sm:text-xs py-1 px-4 shadow-2xs">
-          <div className="max-w-[1200px] mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">🚚 Livraison 24/48h sur toute la Tunisie</span>
-              <span className="hidden sm:inline text-amber-200/80">•</span>
-              <span className="hidden sm:inline text-amber-100">Paiement à la livraison</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <a href="tel:48006623" className="hover:text-amber-200 flex items-center gap-1 font-bold transition">
-                📞 48 006 623
-              </a>
-              <span className="hidden md:inline text-amber-200/80 text-[10px]">Lun-Sam 8h-19h</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="w-full max-w-[1200px] px-4 sm:px-6 py-2 sm:py-2.5">
+        <div className="w-full max-w-[1200px] px-4 sm:px-6">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
