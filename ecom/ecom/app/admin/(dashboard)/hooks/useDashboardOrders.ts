@@ -37,6 +37,11 @@ export const useDashboardOrders = (months = 12) => {
             created_at,
             user_id,
             shipping_phone,
+            shipping_city,
+            shipping_address,
+            shipping_fee,
+            delivery_company,
+            notes,
             guest_info,
             customer_profile:profiles!orders_user_id_fkey (
               id,
@@ -60,6 +65,13 @@ export const useDashboardOrders = (months = 12) => {
                     name
                   )
                 )
+              ),
+              variant:product_variants (
+                id,
+                price,
+                cost_price,
+                size_value,
+                size_unit
               )
             )
           `
@@ -76,6 +88,7 @@ export const useDashboardOrders = (months = 12) => {
         order_items: ((record as any).order_items ?? []).map((item: any) => ({
           ...(item as DashboardOrderItem),
           product: (item as DashboardOrderItem).product ?? null,
+          variant: (item as DashboardOrderItem).variant ?? null,
         })),
       })) as DashboardOrder[];
     },

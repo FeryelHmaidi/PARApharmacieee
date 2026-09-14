@@ -10,6 +10,11 @@ export type DashboardOrderRow = Pick<
   | "created_at"
   | "user_id"
   | "shipping_phone"
+  | "shipping_city"
+  | "shipping_address"
+  | "shipping_fee"
+  | "delivery_company"
+  | "notes"
   | "guest_info"
 > & {
   customer_profile?: Pick<
@@ -35,6 +40,18 @@ export type DashboardOrderItem = Pick<
       tag?: { id: string; name: string } | null;
     }> | null;
   }) | null;
+  variant?: Pick<
+    PublicDatabase["public"]["Tables"]["product_variants"]["Row"],
+    "id" | "price" | "cost_price" | "size_value" | "size_unit"
+  > | null;
+};
+
+export type DeliveryCompanyRow = {
+  id: string;
+  name: string;
+  base_price?: number | null;
+  delivery_cost?: number | null;
+  return_fee?: number | null;
 };
 
 export type DashboardOrder = DashboardOrderRow & {
