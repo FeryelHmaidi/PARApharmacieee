@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { testBigBossAuth } from "@/lib/delivery/bigboss";
 
 type CompanyRecord = {
   id: string;
@@ -35,29 +36,35 @@ export async function POST(req: Request) {
   }
 
   const c = data as CompanyRecord;
-
   const now = new Date().toISOString();
 
-  // Decide which test to run
-  // Prefer API Key test if api_key and api_base_url + test_endpoint_path are provided
   let finalMessage = "Test non effectué";
   let success = false;
 
-  if (c.api_key && c.api_base_url && c.test_endpoint_path) {
-    // build URL
+  const isBigBoss =
+    c.name?.toLowerCase().includes("bigboss") ||
+    c.portal_login?.toLowerCase().includes("bigboss") ||
+    c.api_base_url?.toLowerCase().includes("bigboss");
+
+  // Specialized test for BigBoss Express
+  if (isBigBoss && c.portal_login && c.portal_password) {
+    const baseUrl = c.api_base_url || "https://my.bigbossexpress.tn";
+    const bbResult = await testBigBossAuth(c.portal_login, c.portal_password, baseUrl);
+    success = bbResult.success;
+    finalMessage = bbResult.message;
+  } else if (c.api_key && c.api_base_url && c.test_endpoint_path) {
+    // API Key test
     const base = c.api_base_url.replace(/\/$/, "");
     const path = c.test_endpoint_path.startsWith("/") ? c.test_endpoint_path : `/${c.test_endpoint_path}`;
     const url = base + path;
 
     const headerName = c.api_key_header_name || "X-API-Key";
-    // try raw key first
     const init: RequestInit = { method: "GET", headers: { [headerName]: c.api_key } };
     const res = await tryFetch(url, init);
     if (res.ok) {
       success = true;
       finalMessage = `Connecté (${res.status})`;
     } else if (headerName.toLowerCase() === "authorization") {
-      // try with Bearer prefix as a fallback
       const res2 = await tryFetch(url, { method: "GET", headers: { Authorization: `Bearer ${c.api_key}` } });
       if (res2.ok) {
         success = true;
@@ -68,36 +75,34 @@ export async function POST(req: Request) {
     } else {
       finalMessage = `Erreur ${res.status}: ${res.statusText}`;
     }
-  } else if (c.portal_login && c.portal_password && c.login_url) {
-    // Try login flow - attempt common payloads
-    const loginUrl = c.login_url;
-    const attempts = [
-      { body: { email: c.portal_login, password: c.portal_password }, type: "json" },
-      { body: { username: c.portal_login, password: c.portal_password }, type: "json" },
-      { body: new URLSearchParams({ username: c.portal_login, password: c.portal_password }).toString(), type: "form" },
-      { body: new URLSearchParams({ email: c.portal_login, password: c.portal_password }).toString(), type: "form" },
-    ];
+  } else if (c.portal_login && c.portal_password) {
+    // Generic portal login test
+    const loginUrl = c.login_url || `${(c.api_base_url || "").replace(/\/$/, "")}/api/v1/auth/login`;
+    if (loginUrl.startsWith("http")) {
+      const attempts = [
+        { body: { login: c.portal_login, password: c.portal_password }, type: "json" },
+        { body: { email: c.portal_login, password: c.portal_password }, type: "json" },
+        { body: { username: c.portal_login, password: c.portal_password }, type: "json" },
+      ];
 
-    for (const a of attempts) {
-      const headers: Record<string, string> = {};
-      let bodyData: any = a.body;
-      if (a.type === "json") {
-        headers["Content-Type"] = "application/json";
-        bodyData = JSON.stringify(a.body);
-      } else {
-        headers["Content-Type"] = "application/x-www-form-urlencoded";
+      for (const a of attempts) {
+        const res = await tryFetch(loginUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(a.body),
+        });
+        if (res.ok) {
+          success = true;
+          finalMessage = `Connecté (${res.status})`;
+          break;
+        }
       }
-      const res = await tryFetch(loginUrl, { method: "POST", headers, body: bodyData });
-      // consider 200-299 as success, some APIs return 201 or 204
-      if (res.ok) {
-        success = true;
-        finalMessage = `Connecté (${res.status})`;
-        break;
-      }
+      if (!success) finalMessage = "Identifiants ou URL de connexion incorrects";
+    } else {
+      finalMessage = "Veuillez renseigner une URL de base ou URL de connexion";
     }
-    if (!success) finalMessage = `Erreur de connexion au endpoint de login`;
   } else {
-    finalMessage = "Informations insuffisantes pour tester (api_key+base+path ou login+password+login_url requis)";
+    finalMessage = "Renseignez la Clé API ou Login / Mot de passe pour tester";
   }
 
   // Persist status
@@ -107,9 +112,8 @@ export async function POST(req: Request) {
       .update({ connection_status: success ? "connected" : "failed", last_tested_at: now })
       .eq("id", companyId);
   } catch (e) {
-    // ignore persistence errors for now
+    // ignore
   }
 
   return NextResponse.json({ success, message: finalMessage });
 }
-

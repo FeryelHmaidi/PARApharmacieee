@@ -702,11 +702,27 @@ export function OrdersTable({
                 </p>
               </div>
             ) : (
-              <div className="text-xs font-semibold text-slate-800 inline-flex items-center gap-1">
+              <div className="text-xs font-semibold text-slate-800 flex flex-col gap-0.5">
                 {order.delivery_company ? (
                   <>
-                    <Truck className="h-3 w-3 text-slate-400" />
-                    <span>{order.delivery_company}</span>
+                    <div className="inline-flex items-center gap-1">
+                      <Truck className="h-3 w-3 text-slate-400" />
+                      <span>{order.delivery_company}</span>
+                    </div>
+                    {(order as any).tracking_number && (
+                      <a
+                        href={`https://my.bigbossexpress.tn/track/${(order as any).tracking_number}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 font-mono font-medium"
+                        title="Suivi du colis"
+                      >
+                        <span>📦</span>
+                        <span className="truncate max-w-[120px]">
+                          {(order as any).tracking_number}
+                        </span>
+                      </a>
+                    )}
                   </>
                 ) : (
                   <span className="text-slate-400">—</span>
@@ -784,6 +800,57 @@ export function OrdersTable({
                 >
                   📋 Copier ID Commande
                 </DropdownMenuItem>
+                {order.delivery_company && (
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      const comp = deliveryCompanies.find(
+                        (c) =>
+                          c.name.toLowerCase() ===
+                          order.delivery_company?.toLowerCase()
+                      );
+                      const compId = comp?.id || deliveryCompanies[0]?.id;
+                      if (!compId) {
+                        toast.error("Société introuvable");
+                        return;
+                      }
+                      const tId = toast.loading(
+                        `Création du colis chez ${order.delivery_company}...`
+                      );
+                      try {
+                        const res = await fetch(
+                          "/api/admin/delivery/create-colis",
+                          {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              order_id: order.id,
+                              company_id: compId,
+                            }),
+                          }
+                        );
+                        const data = await res.json();
+                        if (data.success) {
+                          toast.success(
+                            `Colis créé ! N° de suivi : ${data.tracking_number || "OK"}`,
+                            { id: tId }
+                          );
+                          refetch();
+                        } else {
+                          toast.error(
+                            data.message || "Échec de création du colis",
+                            { id: tId }
+                          );
+                        }
+                      } catch (err: any) {
+                        toast.error(err?.message || "Erreur réseau", {
+                          id: tId,
+                        });
+                      }
+                    }}
+                  >
+                    🚀 Créer colis ({order.delivery_company})
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   className="text-rose-600 focus:text-rose-600 font-medium"
                   onClick={() => setOrderToCancel(order)}

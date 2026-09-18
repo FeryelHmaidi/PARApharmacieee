@@ -114,6 +114,34 @@ export const useUpsertOrder = () => {
       }
 
       await syncOrderItems(orderId, items);
+
+      if (
+        (values.status === "confirmed" || values.status === "processing") &&
+        values.deliveryCompany
+      ) {
+        try {
+          const { data: companyData } = await (
+            supabase.from("delivery_companies") as any
+          )
+            .select("id, name")
+            .ilike("name", values.deliveryCompany.trim())
+            .maybeSingle();
+
+          if (companyData?.id) {
+            fetch("/api/admin/delivery/create-colis", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                order_id: orderId,
+                company_id: companyData.id,
+              }),
+            }).catch((e) => console.warn("Erreur create-colis:", e.message));
+          }
+        } catch {
+          // silent fail
+        }
+      }
+
       return { id: orderId };
     },
     onSuccess: async () => {
@@ -196,11 +224,47 @@ export const useUpdateOrderStatus = () => {
         .update(updatePayload)
         .eq("id", orderId)
         .limit(1)
-        .select("id, status")
+        .select("id, status, delivery_company")
         .maybeSingle();
 
       if (error) throw new Error(error.message);
       if (!data) throw new Error("Order not found");
+
+      // ── Auto-create colis in delivery platform when status becomes "confirmed" or "processing" ──
+      const targetCompany = deliveryCompany || data?.delivery_company;
+      if (
+        (status === "confirmed" || status === "processing") &&
+        targetCompany
+      ) {
+        try {
+          const { data: companyData } = await (supabase.from("delivery_companies") as any)
+            .select("id, name")
+            .ilike("name", targetCompany.trim())
+            .maybeSingle();
+
+          if (companyData?.id) {
+            // Fire and forget — don't block the status update response
+            fetch("/api/admin/delivery/create-colis", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ order_id: orderId, company_id: companyData.id }),
+            })
+              .then((res) => res.json())
+              .then((result) => {
+                if (result.success && result.tracking_number) {
+                  console.info(`✓ Colis créé — tracking: ${result.tracking_number}`);
+                } else if (!result.success) {
+                  console.warn("Avertissement create-colis:", result.message);
+                }
+              })
+              .catch((e) => console.warn("Erreur create-colis:", e.message));
+          }
+        } catch (e) {
+          // Silent fail — status update already succeeded, don't throw
+          console.warn("Impossible de créer le colis automatiquement:", e);
+        }
+      }
+
       return data;
     },
     onSuccess: async () => {

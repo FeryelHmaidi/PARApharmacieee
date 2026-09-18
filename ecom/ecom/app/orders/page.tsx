@@ -23,16 +23,18 @@ type OrderItemRow = Database["public"]["Tables"]["order_items"]["Row"] & {
 
 type OrderWithItems = OrderRow & {
   order_items: OrderItemRow[] | null;
+  tracking_number?: string | null;
 };
 
-const statusLabels: Record<string, string> = {
-  pending: "En attente",
-  confirmed: "Confirmée",
-  processing: "En préparation",
-  shipped: "Expédiée",
-  delivered: "Livrée",
-  cancelled: "Annulée",
-  returned: "Retournée",
+const statusConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  pending: { label: "En attente", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
+  tentative: { label: "En attente", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
+  confirmed: { label: "Confirmée", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
+  processing: { label: "En préparation", color: "text-indigo-700", bg: "bg-indigo-50", border: "border-indigo-200" },
+  shipped: { label: "Expédiée", color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-200" },
+  delivered: { label: "Livrée", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
+  cancelled: { label: "Annulée", color: "text-slate-600", bg: "bg-slate-100", border: "border-slate-200" },
+  returned: { label: "Retournée", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200" },
 };
 
 const OrdersPage = () => {
@@ -134,13 +136,16 @@ const OrdersPage = () => {
           <div className="space-y-4">
             {orders.map((order) => {
               const statusKey = order.status ?? "pending";
-              const statusLabel = statusLabels[statusKey] ?? "En attente";
+              const status = statusConfig[statusKey] ?? statusConfig.pending;
               const paymentLabel =
                 order.payment_method === "online"
                   ? "En ligne"
                   : "À la livraison";
               const orderItems = order.order_items ?? [];
-              const totalDisplay = Number(order.total_amount ?? 0).toFixed(2).replace('.', ',');
+              const totalDisplay = Number(order.total_amount ?? 0)
+                .toFixed(2)
+                .replace(".", ",");
+              const trackingNumber = (order as any).tracking_number as string | null | undefined;
 
               return (
                 <div
@@ -150,7 +155,7 @@ const OrdersPage = () => {
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
                       <p className="text-sm text-gray-500">
-                        Commande #{order.id.slice(0, 8)}
+                        Commande #{order.id.slice(0, 8).toUpperCase()}
                       </p>
                       <p className="font-semibold">
                         {order.created_at
@@ -159,8 +164,10 @@ const OrdersPage = () => {
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-3 items-center">
-                      <span className="px-3 py-1 rounded-full text-sm bg-gray-100">
-                        {statusLabel}
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium border ${status.bg} ${status.color} ${status.border}`}
+                      >
+                        {status.label}
                       </span>
                       <span className="text-sm text-gray-500">
                         Paiement : {paymentLabel}
@@ -171,7 +178,11 @@ const OrdersPage = () => {
                         </span>
                         {order.shipping_fee !== null ? (
                           <span className="text-xs text-gray-500">
-                            (inclut {Number(order.shipping_fee).toFixed(2).replace('.', ',')} Dt de livraison)
+                            (inclut{" "}
+                            {Number(order.shipping_fee)
+                              .toFixed(2)
+                              .replace(".", ",")}{" "}
+                            Dt de livraison)
                           </span>
                         ) : (
                           <span className="text-xs text-gray-500 italic">
@@ -182,14 +193,36 @@ const OrdersPage = () => {
                     </div>
                   </div>
 
+                  {/* Tracking number section */}
+                  {trackingNumber && (
+                    <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-0.5">
+                          📦 Numéro de suivi
+                        </p>
+                        <p className="text-sm font-bold text-blue-900 font-mono">{trackingNumber}</p>
+                      </div>
+                      <a
+                        href={`https://my.bigbossexpress.tn/track/${trackingNumber}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition"
+                      >
+                        Suivre mon colis →
+                      </a>
+                    </div>
+                  )}
+
                   {orderItems.length > 0 && (
                     <div className="border rounded-xl divide-y">
                       {orderItems.map((item) => {
-                        const productName = item.products?.name ?? "Produit inconnu";
-                        const productPhoto = item.products?.product_photos?.[0]?.url ?? "/fallback-image.jpg";
-                        // Construct public URL if necessary, or assume it's already public
-                        const photoUrl = productPhoto.startsWith("http") 
-                          ? productPhoto 
+                        const productName =
+                          item.products?.name ?? "Produit inconnu";
+                        const productPhoto =
+                          item.products?.product_photos?.[0]?.url ??
+                          "/fallback-image.jpg";
+                        const photoUrl = productPhoto.startsWith("http")
+                          ? productPhoto
                           : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/product-photos/${productPhoto.replace(/^\/+/, "")}`;
 
                         return (
@@ -198,7 +231,11 @@ const OrdersPage = () => {
                             className="p-4 flex items-center gap-4 text-sm"
                           >
                             <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 shrink-0">
-                              <img src={photoUrl} alt={productName} className="w-full h-full object-cover" />
+                              <img
+                                src={photoUrl}
+                                alt={productName}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                             <div className="flex-1">
                               <p className="font-semibold text-gray-900 line-clamp-1">
@@ -209,7 +246,10 @@ const OrdersPage = () => {
                               </p>
                             </div>
                             <div className="font-bold text-right shrink-0">
-                              {(item.price_at_purchase * item.quantity).toFixed(2).replace('.', ',')} Dt
+                              {(item.price_at_purchase * item.quantity)
+                                .toFixed(2)
+                                .replace(".", ",")}{" "}
+                              Dt
                             </div>
                           </div>
                         );
