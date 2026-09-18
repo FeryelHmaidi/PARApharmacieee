@@ -29,6 +29,7 @@ export function useUpdateProduct() {
       if (!Object.keys(updates).length) {
         throw new Error("No fields to update");
       }
+      updates.updated_at = new Date().toISOString();
       const { error } = await supabase
         .from("products")
         .update(updates)

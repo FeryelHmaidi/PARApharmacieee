@@ -431,6 +431,77 @@ export const inventoryColumns: ColumnDef<Product>[] = [
   },
 
   {
+    id: "created_at",
+    accessorFn: (row) =>
+      row.created_at ? new Date(row.created_at).getTime() : 0,
+    header: ({ column }) => (
+      <SortableHeader column={column} title="Date création" />
+    ),
+    cell: ({ row }) => {
+      const p = row.original;
+      if (!p.created_at) return <span className="text-slate-400 text-xs">—</span>;
+      const d = new Date(p.created_at);
+      if (isNaN(d.getTime())) return <span className="text-slate-400 text-xs">—</span>;
+      return (
+        <div className="text-xs text-slate-700 whitespace-nowrap">
+          <div className="font-medium">
+            {d.toLocaleDateString("fr-FR", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })}
+          </div>
+          <div className="text-[10px] text-slate-400">
+            {d.toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </div>
+        </div>
+      );
+    },
+    size: 110,
+  },
+
+  {
+    id: "updated_at",
+    accessorFn: (row) =>
+      row.updated_at
+        ? new Date(row.updated_at).getTime()
+        : row.created_at
+        ? new Date(row.created_at).getTime()
+        : 0,
+    header: ({ column }) => (
+      <SortableHeader column={column} title="Date modif." />
+    ),
+    cell: ({ row }) => {
+      const p = row.original;
+      const dateVal = p.updated_at || p.created_at;
+      if (!dateVal) return <span className="text-slate-400 text-xs">—</span>;
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return <span className="text-slate-400 text-xs">—</span>;
+      return (
+        <div className="text-xs text-slate-700 whitespace-nowrap">
+          <div className="font-medium">
+            {d.toLocaleDateString("fr-FR", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+            })}
+          </div>
+          <div className="text-[10px] text-slate-400">
+            {d.toLocaleTimeString("fr-FR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </div>
+        </div>
+      );
+    },
+    size: 110,
+  },
+
+  {
     id: "actions",
     header: () => <div className="text-right text-xs">Actions</div>,
     cell: ({ row }) => <ActionsCell product={row.original} />,

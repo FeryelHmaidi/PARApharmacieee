@@ -98,6 +98,7 @@ export function useEditProductFull() {
           brand_logo_url: removedBrandLogo
             ? null
             : (brand_logo_url !== undefined ? brand_logo_url : undefined),
+          updated_at: new Date().toISOString(),
         })
         .eq("id", productId);
 
