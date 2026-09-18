@@ -76,6 +76,7 @@ import {
   Package,
 } from "lucide-react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { getTrackingUrl } from "@/lib/delivery/tracking";
 
 const STATUS_OPTIONS = [
   "all",
@@ -151,9 +152,37 @@ export function OrdersTable({
     company: string;
   } | null>(null);
 
+  const [trackingOrderDialog, setTrackingOrderDialog] =
+    useState<AdminOrder | null>(null);
+  const [manualTrackingInput, setManualTrackingInput] = useState("");
+  const [isSavingTracking, setIsSavingTracking] = useState(false);
+
   const updateStatus = useUpdateOrderStatus();
   const cancelOrder = useCancelOrder();
   const supabase = createClientComponentClient();
+
+  const handleOpenTrackingDialog = (order: AdminOrder) => {
+    setTrackingOrderDialog(order);
+    setManualTrackingInput((order as any).tracking_number || "");
+  };
+
+  const handleSaveManualTracking = async () => {
+    if (!trackingOrderDialog) return;
+    setIsSavingTracking(true);
+    try {
+      const { error } = await (supabase.from("orders") as any)
+        .update({ tracking_number: manualTrackingInput.trim() || null })
+        .eq("id", trackingOrderDialog.id);
+      if (error) throw new Error(error.message);
+      toast.success("Numéro de suivi enregistré !");
+      setTrackingOrderDialog(null);
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.message || "Erreur lors de l'enregistrement");
+    } finally {
+      setIsSavingTracking(false);
+    }
+  };
 
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -711,7 +740,10 @@ export function OrdersTable({
                     </div>
                     {(order as any).tracking_number && (
                       <a
-                        href={`https://my.bigbossexpress.tn/track/${(order as any).tracking_number}`}
+                        href={getTrackingUrl(
+                          (order as any).tracking_number,
+                          order.delivery_company
+                        )}
                         target="_blank"
                         rel="noreferrer"
                         className="text-[10px] text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 font-mono font-medium"
@@ -851,6 +883,11 @@ export function OrdersTable({
                     🚀 Créer colis ({order.delivery_company})
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem
+                  onClick={() => handleOpenTrackingDialog(order)}
+                >
+                  ✏️ Saisir / Modifier N° de suivi
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-rose-600 focus:text-rose-600 font-medium"
                   onClick={() => setOrderToCancel(order)}
@@ -1193,6 +1230,60 @@ export function OrdersTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog Saisie / Modification du Numéro de suivi */}
+      <Dialog
+        open={Boolean(trackingOrderDialog)}
+        onOpenChange={(isOpen) => !isOpen && setTrackingOrderDialog(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Truck className="h-5 w-5 text-yellow-600" />
+              Numéro de suivi du colis
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Saisissez ou modifiez le numéro de suivi pour la commande #
+              {trackingOrderDialog?.id.slice(0, 8).toUpperCase()} (
+              {trackingOrderDialog?.delivery_company || "Transporteur"}). Le
+              client pourra suivre son colis en temps réel sur sa page commandes.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <Label htmlFor="tracking_input" className="text-xs font-semibold">
+              Numéro de suivi (Tracking)
+            </Label>
+            <Input
+              id="tracking_input"
+              value={manualTrackingInput}
+              onChange={(e) => setManualTrackingInput(e.target.value)}
+              placeholder="Ex: BB-123456, 123456789, etc."
+              className="font-mono text-sm"
+              autoFocus
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setTrackingOrderDialog(null)}
+              disabled={isSavingTracking}
+            >
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              className="bg-yellow-600 hover:bg-yellow-700 text-white"
+              onClick={handleSaveManualTracking}
+              disabled={isSavingTracking}
+            >
+              {isSavingTracking ? "Enregistrement..." : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

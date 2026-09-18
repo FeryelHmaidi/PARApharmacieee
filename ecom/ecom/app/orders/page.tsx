@@ -7,6 +7,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
 import { AccountPageHeader } from "@/components/account-page-header";
+import { getTrackingUrl } from "@/lib/delivery/tracking";
 
 const dateFormatter = new Intl.DateTimeFormat("fr-FR", {
   dateStyle: "medium",
@@ -198,12 +199,12 @@ const OrdersPage = () => {
                     <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
                       <div className="flex-1">
                         <p className="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-0.5">
-                          📦 Numéro de suivi
+                          📦 Numéro de suivi {order.delivery_company ? `(${order.delivery_company})` : ""}
                         </p>
                         <p className="text-sm font-bold text-blue-900 font-mono">{trackingNumber}</p>
                       </div>
                       <a
-                        href={`https://my.bigbossexpress.tn/track/${trackingNumber}`}
+                        href={getTrackingUrl(trackingNumber, order.delivery_company)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition"

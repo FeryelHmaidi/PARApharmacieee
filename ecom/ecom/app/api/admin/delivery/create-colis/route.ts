@@ -58,12 +58,27 @@ export async function POST(req: Request) {
 
   const c = companyData as CompanyRecord;
 
+  const isBigBoss =
+    c.name?.toLowerCase().includes("bigboss") ||
+    c.portal_login?.toLowerCase().includes("bigboss") ||
+    c.api_base_url?.toLowerCase().includes("bigboss");
+
+  if (!isBigBoss) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: `L'envoi automatique direct par API est actuellement configuré pour BigBoss Express. Pour ${c.name || "cette société"}, vous pouvez saisir directement le numéro de suivi via le bouton "✏️ Saisir N° de suivi" dans le tableau des commandes.`,
+      },
+      { status: 400 }
+    );
+  }
+
   if (!c.portal_login || !c.portal_password) {
     return NextResponse.json(
       {
         success: false,
         message:
-          "Identifiants portail non configurés pour cette société. Allez dans Admin > Livraison > API & Connexion.",
+          "Identifiants portail non configurés pour BigBoss. Allez dans Admin > Livraison > API & Connexion.",
       },
       { status: 400 }
     );
