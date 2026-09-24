@@ -113,6 +113,7 @@ const EMPTY_STATES: Record<StatusFilter, string> = {
   delivered: "Aucune commande livrée.",
   cancelled: "Aucune commande annulée.",
   returned: "Aucune commande retournée.",
+  retour_recu: "Aucun retour réceptionné par l'admin.",
 };
 
 const getEffectiveStatus = (order: AdminOrder): OrderStatus => {

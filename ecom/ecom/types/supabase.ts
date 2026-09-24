@@ -620,6 +620,7 @@ export type Database = {
         | "delivered"
         | "cancelled"
         | "returned"
+        | "retour_recu"
       product_status: "active" | "inactive"
       size_unit: "ml" | "g" | "mg" | "unit" | "tablet" | "capsule"
     }
@@ -758,6 +759,7 @@ export const Constants = {
         "delivered",
         "cancelled",
         "returned",
+        "retour_recu",
       ],
       product_status: ["active", "inactive"],
       size_unit: ["ml", "g", "mg", "unit", "tablet", "capsule"],

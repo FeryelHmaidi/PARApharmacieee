@@ -11,6 +11,7 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
   delivered: "bg-yellow-100 text-yellow-800 border-yellow-200",
   cancelled: "bg-rose-100 text-rose-800 border-rose-200",
   returned: "bg-gray-200 text-gray-700 border-gray-300",
+  retour_recu: "bg-purple-100 text-purple-800 border-purple-300 font-semibold",
 };
 
 const LABELS: Record<OrderStatus, string> = {
@@ -22,6 +23,7 @@ const LABELS: Record<OrderStatus, string> = {
   delivered: "Livré",
   cancelled: "Annulé",
   returned: "Retourné",
+  retour_recu: "Retour Reçu ✅",
 };
 
 type OrderStatusBadgeProps = {

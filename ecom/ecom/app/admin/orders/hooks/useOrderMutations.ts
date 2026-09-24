@@ -43,6 +43,36 @@ const mapFormToDatabase = (values: OrderFormValues) => {
   };
 };
 
+
+// ── Helper: restore stock for all items in an order ──────────────────────────
+async function restoreStockForOrder(
+  orderId: string,
+  supabase: TypedSupabaseClient
+): Promise<void> {
+  const { data: items, error } = await (supabase.from("order_items") as any)
+    .select("variant_id, quantity")
+    .eq("order_id", orderId);
+
+  if (error || !items || items.length === 0) return;
+
+  for (const item of items) {
+    if (!item.variant_id || !item.quantity) continue;
+
+    // Fetch current stock then increment
+    const { data: variant } = await (supabase.from("product_variants") as any)
+      .select("stock")
+      .eq("id", item.variant_id)
+      .maybeSingle();
+
+    if (variant != null) {
+      const newStock = (variant.stock ?? 0) + item.quantity;
+      await (supabase.from("product_variants") as any)
+        .update({ stock: newStock })
+        .eq("id", item.variant_id);
+    }
+  }
+}
+
 export const useUpsertOrder = () => {
   const supabase = useSupabaseClient();
   const queryClient = useQueryClient();
@@ -230,6 +260,15 @@ export const useUpdateOrderStatus = () => {
       if (error) throw new Error(error.message);
       if (!data) throw new Error("Order not found");
 
+      // ── Restore stock when status is "retour_recu" ──
+      if (status === "retour_recu") {
+        try {
+          await restoreStockForOrder(orderId, supabase);
+        } catch (e) {
+          console.warn("Stock restore failed (retour_recu):", e);
+        }
+      }
+
       // ── Auto-create colis in delivery platform when status becomes "confirmed" or "processing" ──
       const targetCompany = deliveryCompany || data?.delivery_company;
       if (
@@ -294,6 +333,14 @@ export const useCancelOrder = () => {
 
       if (error) throw new Error(error.message);
       if (!data) throw new Error("Order not found");
+
+      // ── Restore stock when order is cancelled ──
+      try {
+        await restoreStockForOrder(orderId, supabase);
+      } catch (e) {
+        console.warn("Stock restore failed (cancel):", e);
+      }
+
       return data;
     },
     onSuccess: async () => {
