@@ -26,6 +26,16 @@ const items = [
     title: "Orders",
     url: "/admin/orders",
     icon: PackageSearch,
+    items: [
+      {
+        title: "Toutes les commandes",
+        url: "/admin/orders",
+      },
+      {
+        title: "Retours Reçus",
+        url: "/admin/orders?tab=returns",
+      },
+    ],
   },
   {
     title: "Inventory",

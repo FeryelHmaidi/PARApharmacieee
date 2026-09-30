@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import type { TypedSupabaseClient } from "@/lib/supabase/types";
 import type { OrderFormValues, OrderStatus } from "../types";
+import { recordOrderHistory, formatStatusName } from "./useOrderHistory";
 
 const useSupabaseClient = () =>
   useMemo(() => createClient() as unknown as TypedSupabaseClient, []);
@@ -145,6 +146,26 @@ export const useUpsertOrder = () => {
 
       await syncOrderItems(orderId, items);
 
+      // ── Record history ──
+      try {
+        if (values.id) {
+          await recordOrderHistory(supabase, {
+            orderId,
+            action: "MODIFICATION",
+            details: `Commande mise à jour par l'administrateur (Montant : ${payload.total_amount} TND, Statut : ${formatStatusName(payload.status)}).`,
+          });
+        } else {
+          await recordOrderHistory(supabase, {
+            orderId,
+            action: "CREATION",
+            newStatus: payload.status,
+            details: `Nouvelle commande créée par l'administrateur (${items.length} article(s), Total : ${payload.total_amount} TND).`,
+          });
+        }
+      } catch (err) {
+        console.warn("Could not log order history (upsert):", err);
+      }
+
       if (
         (values.status === "confirmed" || values.status === "processing") &&
         values.deliveryCompany
@@ -196,7 +217,21 @@ export const useUpdateOrderStatus = () => {
       deliveryCompany?: string | null;
       notes?: string | null;
     }) => {
+      // Fetch current order to capture old status and notes
+      const { data: currentOrder } = await (supabase.from("orders") as any)
+        .select("id, status, delivery_company, notes")
+        .eq("id", orderId)
+        .maybeSingle();
+
+      const oldStatus = currentOrder?.status;
+
       const updatePayload: any = { status };
+      if (status === "retour_recu") {
+        const existingNotes = notes !== undefined ? (notes || "") : (currentOrder?.notes || "");
+        if (!existingNotes.includes("[RETOUR_RECU:")) {
+          updatePayload.notes = `${existingNotes} [RETOUR_RECU: ${new Date().toISOString()}]`.trim();
+        }
+      }
       if (status === "delivered") {
         updatePayload.payment_status = "paid";
       }
@@ -269,6 +304,24 @@ export const useUpdateOrderStatus = () => {
         }
       }
 
+      // ── Record history ──
+      try {
+        const isRetour = status === "retour_recu";
+        await recordOrderHistory(supabase, {
+          orderId,
+          action: isRetour ? "RETOUR_RECU" : "STATUT_CHANGE",
+          oldStatus: oldStatus ?? null,
+          newStatus: status,
+          details: isRetour
+            ? `Colis retourné réceptionné en main propre par l'administrateur le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}. Stock restauré automatiquement.`
+            : `Statut modifié de "${formatStatusName(oldStatus)}" à "${formatStatusName(status)}"${
+                deliveryCompany ? ` (Transporteur : ${deliveryCompany})` : ""
+              }.`,
+        });
+      } catch (err) {
+        console.warn("Could not log order history (status update):", err);
+      }
+
       // ── Auto-create colis in delivery platform when status becomes "confirmed" or "processing" ──
       const targetCompany = deliveryCompany || data?.delivery_company;
       if (
@@ -324,6 +377,11 @@ export const useCancelOrder = () => {
       orderId: string;
       notes?: string;
     }) => {
+      const { data: currentOrder } = await (supabase.from("orders") as any)
+        .select("id, status, notes")
+        .eq("id", orderId)
+        .maybeSingle();
+
       const { data, error } = await (supabase.from("orders") as any)
         .update({ status: "cancelled", notes: notes ?? null })
         .eq("id", orderId)
@@ -339,6 +397,19 @@ export const useCancelOrder = () => {
         await restoreStockForOrder(orderId, supabase);
       } catch (e) {
         console.warn("Stock restore failed (cancel):", e);
+      }
+
+      // ── Record history ──
+      try {
+        await recordOrderHistory(supabase, {
+          orderId,
+          action: "ANNULATION",
+          oldStatus: currentOrder?.status ?? null,
+          newStatus: "cancelled",
+          details: `Commande annulée par l'administrateur. Restauration du stock effectuée.${notes ? ` Note : ${notes}` : ""}`,
+        });
+      } catch (err) {
+        console.warn("Could not log order history (cancel):", err);
       }
 
       return data;

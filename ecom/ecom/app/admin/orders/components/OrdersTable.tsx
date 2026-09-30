@@ -57,6 +57,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ManageOrderSheet } from "./ManageOrderSheet";
 import { OrderStatusBadge } from "./OrderStatusBadge";
+import { OrderHistoryDialog } from "./OrderHistoryDialog";
+import { recordOrderHistory } from "../hooks/useOrderHistory";
 import {
   useCancelOrder,
   useUpdateOrderStatus,
@@ -157,6 +159,7 @@ export function OrdersTable({
     useState<AdminOrder | null>(null);
   const [manualTrackingInput, setManualTrackingInput] = useState("");
   const [isSavingTracking, setIsSavingTracking] = useState(false);
+  const [historyOrder, setHistoryOrder] = useState<AdminOrder | null>(null);
 
   const updateStatus = useUpdateOrderStatus();
   const cancelOrder = useCancelOrder();
@@ -175,6 +178,13 @@ export function OrdersTable({
         .update({ tracking_number: manualTrackingInput.trim() || null })
         .eq("id", trackingOrderDialog.id);
       if (error) throw new Error(error.message);
+      try {
+        await recordOrderHistory(supabase, {
+          orderId: trackingOrderDialog.id,
+          action: "TRACKING_UPDATE",
+          details: `Numéro de suivi enregistré : ${manualTrackingInput.trim()}`,
+        });
+      } catch {}
       toast.success("Numéro de suivi enregistré !");
       setTrackingOrderDialog(null);
       refetch();

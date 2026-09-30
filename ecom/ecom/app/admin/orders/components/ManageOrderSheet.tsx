@@ -201,6 +201,7 @@ export function ManageOrderSheet({
   onSuccess,
 }: ManageOrderSheetProps) {
   const [open, setOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const upsertOrder = useUpsertOrder();
   const [deliveryCompanies, setDeliveryCompanies] = useState<{id: string, name: string}[]>([]);
   const [form, setForm] = useState<OrderFormValues>(() =>

@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { ClipboardList } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import PageModel from "./components/PageModel";
 
 export default function AdminOrdersPage() {
@@ -12,7 +14,9 @@ export default function AdminOrdersPage() {
           </h1>
         </header>
 
-        <PageModel />
+        <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+          <PageModel />
+        </Suspense>
       </section>
     </div>
   );
