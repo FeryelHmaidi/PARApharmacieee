@@ -38,7 +38,7 @@ import { useEditProductFull } from "../hooks/useEditProductFull";
 import { useTags } from "../hooks/useTags";
 import { useCreateTag } from "../hooks/useCreateTag";
 import { cn } from "@/lib/utils";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { createClient } from "@/lib/supabase/client";
 
 type SizeUnit = Database["public"]["Enums"]["size_unit"] | string;
 type ProductStatus = Database["public"]["Enums"]["product_status"];
@@ -185,7 +185,7 @@ export default function ProductUploadSheet({
   const [dictCategories, setDictCategories] = useState<{id: string, name: string}[]>([]);
   const [dictSubcategories, setDictSubcategories] = useState<{id: string, name: string, category_id: string}[]>([]);
   const [dictBrands, setDictBrands] = useState<{id: string, name: string, brand_logo_url: string | null}[]>([]);
-  const supabase = useMemo(() => createClientComponentClient(), []);
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     async function fetchDictionaries() {
