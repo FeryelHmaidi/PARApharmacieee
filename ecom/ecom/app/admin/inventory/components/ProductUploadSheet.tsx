@@ -40,7 +40,7 @@ import { useCreateTag } from "../hooks/useCreateTag";
 import { cn } from "@/lib/utils";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-type SizeUnit = Database["public"]["Enums"]["size_unit"];
+type SizeUnit = Database["public"]["Enums"]["size_unit"] | string;
 type ProductStatus = Database["public"]["Enums"]["product_status"];
 
 type VariantFormState = {
@@ -52,7 +52,8 @@ type VariantFormState = {
   stock: string;
   expiry: string;
   sizeValue: string;
-  sizeUnit: SizeUnit | "";
+  sizeUnit: string;
+  customUnit?: string;
   active: boolean;
 };
 
@@ -61,25 +62,33 @@ type VariantPayload = VariantDraft & { id?: string };
 
 const sizeUnitOptions = Constants.public.Enums.size_unit;
 const DEFAULT_CURRENCY = "TND";
+const STANDARD_UNITS = ["ml", "g", "mg", "unit", "tablet", "capsule"] as const;
 
-const createVariantFormState = (variant?: VariantRow): VariantFormState => ({
-  id:
-    variant?.id ??
-    (typeof globalThis.crypto !== "undefined" &&
-    typeof globalThis.crypto.randomUUID === "function"
-      ? globalThis.crypto.randomUUID()
-      : Math.random().toString(36).slice(2)),
-  variantId: variant?.id,
-  costPrice: variant && (variant as any).cost_price != null ? String((variant as any).cost_price).replace('.', ',') : "",
-  price: variant ? String(variant.price ?? "").replace('.', ',') : "",
-  currency: variant?.currency ?? DEFAULT_CURRENCY,
-  stock: variant ? String(variant.stock ?? "") : "",
-  expiry: variant?.expiry_date ? variant.expiry_date.split("T")[0] : "",
-  sizeValue:
-    variant && variant.size_value != null ? String(variant.size_value) : "",
-  sizeUnit: (variant?.size_unit as SizeUnit | "") ?? "",
-  active: variant?.active ?? true,
-});
+const createVariantFormState = (variant?: VariantRow): VariantFormState => {
+  const rawUnit = (variant?.size_unit ?? "").trim();
+  const isStandard = STANDARD_UNITS.includes(rawUnit.toLowerCase() as any);
+  const isCustom = rawUnit !== "" && !isStandard;
+
+  return {
+    id:
+      variant?.id ??
+      (typeof globalThis.crypto !== "undefined" &&
+      typeof globalThis.crypto.randomUUID === "function"
+        ? globalThis.crypto.randomUUID()
+        : Math.random().toString(36).slice(2)),
+    variantId: variant?.id,
+    costPrice: variant && (variant as any).cost_price != null ? String((variant as any).cost_price).replace('.', ',') : "",
+    price: variant ? String(variant.price ?? "").replace('.', ',') : "",
+    currency: variant?.currency ?? DEFAULT_CURRENCY,
+    stock: variant ? String(variant.stock ?? "") : "",
+    expiry: variant?.expiry_date ? variant.expiry_date.split("T")[0] : "",
+    sizeValue:
+      variant && variant.size_value != null ? String(variant.size_value) : "",
+    sizeUnit: isStandard ? rawUnit.toLowerCase() : (isCustom ? "custom" : ""),
+    customUnit: isCustom ? rawUnit : "",
+    active: variant?.active ?? true,
+  };
+};
 
 export default function ProductUploadSheet({
   trigger,
@@ -340,7 +349,10 @@ export default function ProductUploadSheet({
         currency: trimmedCurrency.toUpperCase(),
         expiry_date: variant.expiry || null,
         size_value: sizeValue,
-        size_unit: variant.sizeUnit || null,
+        size_unit:
+          variant.sizeUnit === "custom"
+            ? (variant.customUnit?.trim() || null)
+            : (variant.sizeUnit ? variant.sizeUnit.trim() : null),
         active: variant.active,
       } satisfies VariantPayload;
     });
@@ -1258,15 +1270,19 @@ export default function ProductUploadSheet({
                         />
                         <Select
                           value={variant.sizeUnit || "none"}
-                          onValueChange={(value) =>
-                            updateVariantField(
-                              variant.id,
-                              "sizeUnit",
-                              value === "none" ? "" : (value as SizeUnit)
-                            )
-                          }
+                          onValueChange={(value) => {
+                            if (value === "custom") {
+                              updateVariantField(variant.id, "sizeUnit", "custom");
+                            } else if (value === "none") {
+                              updateVariantField(variant.id, "sizeUnit", "");
+                              updateVariantField(variant.id, "customUnit", "");
+                            } else {
+                              updateVariantField(variant.id, "sizeUnit", value);
+                              updateVariantField(variant.id, "customUnit", "");
+                            }
+                          }}
                         >
-                          <SelectTrigger className="w-full sm:w-[160px]">
+                          <SelectTrigger className="w-full sm:w-[175px]">
                             <SelectValue placeholder="Unit" />
                           </SelectTrigger>
                           <SelectContent>
@@ -1276,9 +1292,29 @@ export default function ProductUploadSheet({
                                 {option.toUpperCase()}
                               </SelectItem>
                             ))}
+                            <SelectItem value="custom" className="font-semibold text-amber-700">
+                              Autre (personnalisé)...
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
+                      {variant.sizeUnit === "custom" && (
+                        <div className="flex flex-col gap-1 mt-1.5 animate-in fade-in-50 duration-150">
+                          <Input
+                            placeholder="Préciser l'unité (ex: Sachet, Ampoule, Flacon, Boîte, Gélule...)"
+                            value={variant.customUnit || ""}
+                            onChange={(e) =>
+                              updateVariantField(
+                                variant.id,
+                                "customUnit",
+                                e.target.value
+                              )
+                            }
+                            className="h-9 text-xs border-amber-300 focus-visible:ring-amber-500 bg-amber-50/40"
+                            autoFocus
+                          />
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between rounded-md border px-4 py-3">

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type { Database } from "@/types/supabase";
 
 type ProductStatus = Database["public"]["Enums"]["product_status"];
-type SizeUnit = Database["public"]["Enums"]["size_unit"];
+type SizeUnit = Database["public"]["Enums"]["size_unit"] | string;
 type VariantInsert = Database["public"]["Tables"]["product_variants"]["Insert"];
 
 export type VariantDraft = {

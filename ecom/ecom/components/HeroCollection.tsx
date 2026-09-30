@@ -11,7 +11,7 @@ import ProductModal from "@/components/ui/product-modal";
 import { ShoppingBasket } from "lucide-react";
 import type { Database } from "@/types/supabase";
 
-type SizeUnit = Database["public"]["Enums"]["size_unit"];
+type SizeUnit = Database["public"]["Enums"]["size_unit"] | string;
 
 type ProductRow = Database["public"]["Tables"]["products"]["Row"];
 type ProductVariantRow =

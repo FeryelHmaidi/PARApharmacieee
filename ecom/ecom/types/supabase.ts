@@ -452,7 +452,7 @@ export type Database = {
           id: string
           price: number
           product_id: string
-          size_unit: Database["public"]["Enums"]["size_unit"] | null
+          size_unit: Database["public"]["Enums"]["size_unit"] | string | null
           size_value: number | null
           stock: number
           updated_at: string | null
@@ -466,7 +466,7 @@ export type Database = {
           id?: string
           price?: number
           product_id: string
-          size_unit?: Database["public"]["Enums"]["size_unit"] | null
+          size_unit?: Database["public"]["Enums"]["size_unit"] | string | null
           size_value?: number | null
           stock?: number
           updated_at?: string | null
@@ -480,7 +480,7 @@ export type Database = {
           id?: string
           price?: number
           product_id?: string
-          size_unit?: Database["public"]["Enums"]["size_unit"] | null
+          size_unit?: Database["public"]["Enums"]["size_unit"] | string | null
           size_value?: number | null
           stock?: number
           updated_at?: string | null
@@ -622,7 +622,7 @@ export type Database = {
         | "returned"
         | "retour_recu"
       product_status: "active" | "inactive"
-      size_unit: "ml" | "g" | "mg" | "unit" | "tablet" | "capsule"
+      size_unit: "ml" | "g" | "mg" | "unit" | "tablet" | "capsule" | (string & {})
     }
     CompositeTypes: {
       [_ in never]: never
