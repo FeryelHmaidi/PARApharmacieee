@@ -124,13 +124,12 @@ const ProductGrid: React.FC<Props> = ({
             /* note: custom asymmetric radius for rough/modern edges */
           >
             {/* Upper half - image, stretches edge-to-edge */}
-            <div className="h-[70%] w-full bg-gray-100  overflow-hidden relative">
+            <div className="h-[70%] w-full bg-white p-3 overflow-hidden relative flex items-center justify-center border-b border-gray-100">
               {p.image ? (
-                // plain <img> so this is portable; replace with Next/Image if desired
                 <img
                   src={p.image}
                   alt={p.title}
-                  className="w-full h-full object-cover block transition-transform duration-200 group-hover:scale-110"
+                  className="max-h-full max-w-full w-auto h-auto object-contain block transition-transform duration-300 group-hover:scale-105"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-300 text-5xl">
@@ -144,7 +143,7 @@ const ProductGrid: React.FC<Props> = ({
                 </div>
               )}
 
-              <div className="absolute inset-0 bg-zinc-500/10 group-hover:bg-zinc-600/20 transition-colors" />
+              <div className="absolute inset-0 pointer-events-none group-hover:bg-black/[0.02] transition-colors" />
             </div>
 
             {/* Lower half - content with padding */}

@@ -207,7 +207,7 @@ export default function HeroCollection() {
           carouselProducts.map((item) => (
             <div key={item.id} className="relative">
               <motion.div
-                className="group relative h-[400px] rounded-lg overflow-hidden bg-zinc-100 hover:cursor-pointer"
+                className="group relative h-[400px] rounded-lg overflow-hidden bg-white border border-gray-100 p-4 hover:cursor-pointer flex items-center justify-center"
                 whileHover={{ y: -5 }}
                 transition={{ duration: 0.2 }}
                 onClick={() => setSelectedProduct(item)}
@@ -218,7 +218,7 @@ export default function HeroCollection() {
                     alt={item.title}
                     width={400}
                     height={450}
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    className="max-h-full max-w-full w-auto h-auto object-contain group-hover:scale-105 transition duration-300"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-white text-gray-400">
@@ -226,7 +226,7 @@ export default function HeroCollection() {
                   </div>
                 )}
 
-                <div className="absolute inset-0 bg-zinc-500/10 group-hover:bg-zinc-600/20 transition-colors" />
+                <div className="absolute inset-0 pointer-events-none group-hover:bg-black/[0.02] transition-colors" />
 
                 <div className="absolute top-4 right-4 bg-white px-4 py-2 rounded-full shadow-2xl">
                   <span className="text-lg font-semibold text-yellow-600">
