@@ -1,5 +1,7 @@
 "use client";
 
+import React from "react";
+
 import {
   SidebarMenu,
   SidebarMenuBadge,
@@ -11,12 +13,32 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
-import { ChartArea, PackageSearch, Pill, Settings, Truck } from "lucide-react";
+import { ChartArea, PackageSearch, Pill, Settings, Truck, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // Menu items with proper routes
-const items = [
+
+type NestedItem = {
+  title: string;
+  url: string;
+};
+
+type SubItem = {
+  title: string;
+  url: string;
+  subItems?: NestedItem[];
+};
+
+type MenuItem = {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  isActive?: boolean;
+  items?: SubItem[];
+};
+
+const items: MenuItem[] = [
   {
     title: "Dashboard",
     url: "/admin",
