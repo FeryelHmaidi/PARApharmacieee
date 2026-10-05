@@ -12,7 +12,7 @@ PARAPharmacieee is an e-commerce platform dedicated to parapharmacy products.
 
 The application allows users to browse products, explore different categories, view product details, and manage their shopping experience through a modern and responsive interface.
 
-## ✨ Features
+##  Features
 
 -  Browse parapharmacy products
 -  Product exploration
