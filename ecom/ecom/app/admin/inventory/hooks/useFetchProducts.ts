@@ -17,7 +17,7 @@ const PRODUCT_PHOTO_BUCKET = "product-photos";
 
 const toPublicPhotoUrl = (url?: string | null): string | null => {
   if (!url) return null;
-  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
   if (!SUPABASE_URL) return null;
   const sanitizedPath = url.replace(/^\/+/, "");
   return `${SUPABASE_URL}/storage/v1/object/public/${PRODUCT_PHOTO_BUCKET}/${sanitizedPath}`;
@@ -84,6 +84,9 @@ export const useFetchProducts = () => {
            product_photos (*),
            product_tags (
              tags (*)
+           ),
+           discount_targets (
+             discounts (*)
            )
           `
         )
@@ -92,16 +95,22 @@ export const useFetchProducts = () => {
 
       if (error) throw new Error(error.message);
 
+      const now = new Date();
+
       return (data ?? []).map((record) => {
         const {
           product_variants = [],
           product_photos = [],
           product_tags = [],
+          discount_targets = [],
           ...productFields
         } = record as Database["public"]["Tables"]["products"]["Row"] & {
           product_variants: VariantRow[];
           product_photos: PhotoRow[];
           product_tags?: { tags?: TagRow | null }[];
+          discount_targets?: {
+            discounts?: Database["public"]["Tables"]["discounts"]["Row"] | null;
+          }[];
         };
 
         const variants = product_variants ?? [];
@@ -115,6 +124,36 @@ export const useFetchProducts = () => {
         const totalStock = computeTotalStock(variants);
         const nearestExpiry = computeNearestExpiry(variants);
 
+        // Active discounts
+        const targetDiscounts = (discount_targets ?? [])
+          .map((dt) => dt.discounts)
+          .filter((d): d is Database["public"]["Tables"]["discounts"]["Row"] => {
+            if (!d) return false;
+            if (d.active === false) return false;
+            if (d.starts_at && new Date(d.starts_at) > now) return false;
+            if (d.ends_at && new Date(d.ends_at) < now) return false;
+            return true;
+          });
+
+        let computedDiscountedPrice: number | null = null;
+        if (targetDiscounts.length > 0 && minPrice !== null && minPrice > 0) {
+          let bestPrice = minPrice;
+          for (const disc of targetDiscounts) {
+            let priceAfter = minPrice;
+            if (disc.type === "percentage") {
+              priceAfter = minPrice * (1 - (disc.amount || 0) / 100);
+            } else if (disc.type === "fixed") {
+              priceAfter = minPrice - (disc.amount || 0);
+            }
+            if (priceAfter < bestPrice) {
+              bestPrice = Math.max(0, priceAfter);
+            }
+          }
+          if (bestPrice < minPrice) {
+            computedDiscountedPrice = Number(bestPrice.toFixed(2));
+          }
+        }
+
         return {
           ...productFields,
           variants,
@@ -125,7 +164,7 @@ export const useFetchProducts = () => {
           currency,
           total_stock: totalStock,
           nearest_expiry: nearestExpiry,
-          discounted_price: null,
+          discounted_price: computedDiscountedPrice,
         } satisfies ProductWithRelations;
       });
     },

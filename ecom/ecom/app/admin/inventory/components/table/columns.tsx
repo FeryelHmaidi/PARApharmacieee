@@ -309,8 +309,8 @@ export const inventoryColumns: ColumnDef<Product>[] = [
 
   {
     id: "price",
-    accessorFn: (row) => row.min_price ?? (row.variants?.[0]?.price ?? 0),
-    header: ({ column }) => <SortableHeader column={column} title="Price" />,
+    accessorFn: (row) => row.discounted_price ?? row.min_price ?? (row.variants?.[0]?.price ?? 0),
+    header: ({ column }) => <SortableHeader column={column} title="Prix" />,
     cell: ({ row }) => {
       const p = row.original;
       const variants = p.variants ?? [];
@@ -323,14 +323,20 @@ export const inventoryColumns: ColumnDef<Product>[] = [
       if (
         p.discounted_price != null &&
         basePrice != null &&
-        p.discounted_price !== basePrice
+        p.discounted_price < basePrice
       ) {
+        const percent = Math.round(((basePrice - p.discounted_price) / basePrice) * 100);
         return (
-          <div className="flex flex-col items-start text-xs">
-            <div className="font-semibold text-emerald-700">
-              {currencyFormat(p.discounted_price, currency)}
+          <div className="flex flex-col items-start text-xs gap-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-bold text-emerald-600">
+                {currencyFormat(p.discounted_price, currency)}
+              </span>
+              <span className="bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold px-1 rounded">
+                -{percent}%
+              </span>
             </div>
-            <div className="text-[10px] text-muted-foreground line-through">
+            <div className="text-[11px] text-red-500 line-through font-medium">
               {currencyFormat(basePrice, currency)}
             </div>
           </div>
@@ -340,7 +346,7 @@ export const inventoryColumns: ColumnDef<Product>[] = [
         <div className="font-semibold text-xs text-slate-800">{currencyFormat(basePrice, currency)}</div>
       );
     },
-    size: 90,
+    size: 110,
   },
 
   {
