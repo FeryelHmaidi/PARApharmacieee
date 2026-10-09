@@ -31,6 +31,7 @@ interface ProductModalProps {
     brand?: string | null;
     brand_logo_url?: string | null;
     description?: string;
+    discounted_price?: number | null;
   };
 }
 
@@ -89,13 +90,19 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
     }
 
     const activeImage = productImages[selectedImage] ?? product.image;
+    const originalPrice = selectedSize.price;
+    const hasDiscount =
+      typeof product.discounted_price === "number" &&
+      product.discounted_price > 0 &&
+      product.discounted_price < originalPrice;
+    const unitPrice = hasDiscount ? product.discounted_price! : originalPrice;
 
     addItem({
       productId: product.id,
       variantId: selectedSize.variantId,
       title: product.title,
       sizeLabel: getSizeLabel(selectedSize),
-      unitPrice: selectedSize.price,
+      unitPrice: unitPrice,
       quantity,
       image: activeImage,
       unit: selectedSize.unit,
@@ -120,6 +127,16 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
     typeof selectedSize?.stock === "number" ? selectedSize.stock : null;
   const isOutOfStock = selectedStock !== null && selectedStock <= 0;
   const actionDisabled = !selectedSize?.variantId || isOutOfStock;
+
+  const currentPrice = selectedSize ? selectedSize.price : (sortedSizes[0]?.price ?? 0);
+  const hasDiscount =
+    typeof product.discounted_price === "number" &&
+    product.discounted_price > 0 &&
+    product.discounted_price < currentPrice;
+  const discountPercent =
+    hasDiscount && currentPrice > 0
+      ? Math.round(((currentPrice - product.discounted_price!) / currentPrice) * 100)
+      : 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -149,199 +166,207 @@ const ProductModal = ({ isOpen, onClose, product }: ProductModalProps) => {
           </svg>
         </button>
 
-        {/* Image gallery - on top when stacked (small screens), left when side-by-side (lg+) */}
-        <div className="flex w-full flex-shrink-0 flex-col gap-2 p-3 sm:gap-4 sm:p-4 lg:min-h-0 lg:w-[min(400px,45%)] lg:flex-row lg:p-6">
-          {/* Thumbnail list */}
-          <div className="flex w-full gap-2 overflow-x-auto pb-1 sm:gap-3 lg:w-[80px] lg:flex-shrink-0 lg:flex-col lg:overflow-visible lg:pb-0 xl:w-[100px]">
-            {productImages.map((image, index) => (
-              <div
-                key={index}
-                onClick={() => setSelectedImage(index)}
-                className={`h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg border-2 bg-gray-100 sm:h-20 sm:w-20 lg:h-auto lg:w-full lg:aspect-square ${index === selectedImage
-                  ? "border-yellow-600"
-                  : "border-transparent"
-                  } hover:border-yellow-600 transition cursor-pointer`}
-              >
-                <div className="relative w-full h-full">
-                  <Image
-                    src={image}
-                    alt={`${product.title} view ${index + 1}`}
-                    fill
-                    className="w-full h-full object-contain p-1"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Main image and Logo wrapper */}
-          <div className="flex flex-1 flex-col gap-4">
-            <div className="relative flex flex-1 items-center justify-center rounded-lg bg-gray-50 overflow-hidden min-h-[180px] sm:min-h-[220px] lg:min-h-[240px]">
-              <Image
-                src={productImages[selectedImage]}
-                alt={product.title}
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Product details - below images when stacked (small screens), right when side-by-side (lg+) */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {/* Brand Text (Fallback) */}
-          {product.brand && !product.brand_logo_url && (
-            <div className="mt-2 sm:mt-4 mb-1">
-              <a
-                href={`/products?search=${encodeURIComponent(product.brand)}`}
-                className="text-sm font-semibold text-gray-500 hover:text-blue-600 hover:underline cursor-pointer"
-              >
-                {product.brand}
-              </a>
+        {/* Product Images section */}
+        <div className="flex w-full flex-col justify-between bg-[#F8F8F8] p-3 sm:p-4 lg:w-1/2 lg:p-6 relative">
+          {hasDiscount && (
+            <div className="absolute top-4 left-4 z-20 bg-red-600 text-white font-bold text-xs px-2.5 py-1 rounded shadow">
+              -{discountPercent}%
             </div>
           )}
-          <h2 className="text-lg font-bold mt-1 sm:text-xl md:text-2xl">{product.title}</h2>
-
-          {/* Price and Rating */}
-          <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-4">
-            <div className="flex flex-col">
-              <span className="text-xl font-bold sm:text-2xl md:text-3xl">
-                {selectedSize
-                  ? `${selectedSize.price.toFixed(2).replace('.', ',')} Dt`
-                  : sortedSizes[0]
-                    ? `À partir de ${sortedSizes[0].price.toFixed(2).replace('.', ',')} Dt`
-                    : "Prix indisponible"}
-              </span>
-              {product.sizes.length > 1 && !selectedSize && sortedSizes[0] && (
-                <span className="text-xs text-gray-500 sm:text-sm">
-                  {`${sortedSizes[0].price.toFixed(2).replace('.', ',')} Dt - ${sortedSizes[
-                    sortedSizes.length - 1
-                  ].price.toFixed(2).replace('.', ',')} Dt`}
-                </span>
-              )}
-            </div>
+          {/* Main Image */}
+          <div className="relative mx-auto flex aspect-square w-full max-w-[260px] items-center justify-center sm:max-w-[340px] lg:max-w-[420px]">
+            <Image
+              src={productImages[selectedImage]}
+              alt={product.title}
+              fill
+              sizes="(max-width: 640px) 260px, (max-width: 1024px) 340px, 420px"
+              className="object-contain"
+              priority
+            />
           </div>
 
-          {/* Description */}
-          <p className="mt-4 text-sm text-gray-600 sm:mt-6 sm:text-base">
-            {product.description?.trim() ||
-              "Description à venir pour ce produit."}
-          </p>
-
-          {/* Size Selection */}
-          {sortedSizes.length > 0 && (
-            <div className="mt-4 sm:mt-6 md:mt-8">
-              <span className="text-xs font-medium sm:text-sm">Choisir la Taille:</span>
-              <div className="flex gap-1.5 sm:gap-2 mt-1.5 sm:mt-2 flex-wrap">
-                {sortedSizes.map((sizeOption) => {
-                  const label = getSizeLabel(sizeOption);
-                  const isSelected =
-                    selectedSize?.size === sizeOption.size &&
-                    selectedSize?.unit === sizeOption.unit &&
-                    selectedSize?.quantity === sizeOption.quantity;
-
-                  return (
-                    <button
-                      key={`${sizeOption.size}-${sizeOption.price}-${sizeOption.quantity ?? "na"
-                        }`}
-                      onClick={() => setSelectedSize(sizeOption)}
-                      className={`w-fit h-fit px-2 py-1 text-xs rounded-md sm:px-3 sm:py-1.5 sm:text-sm sm:rounded-lg flex flex-col items-center justify-center gap-0.5 sm:gap-1 ${isSelected
-                        ? "bg-black text-white"
-                        : "border border-gray-200 hover:border-gray-300"
-                        }`}
-                    >
-                      <span>{label}</span>
-                      <span className="font-semibold">
-                        {sizeOption.price.toFixed(2).replace('.', ',')} Dt
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Availability badge and Brand Logo */}
-          <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-4">
-            {selectedStock !== null && (
-              <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium sm:text-sm ${
-                    selectedStock <= 0
-                      ? "bg-red-100 text-red-700"
-                      : selectedStock <= 2
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-green-100 text-green-700"
+          {/* Thumbnails */}
+          {productImages.length > 1 && (
+            <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1 sm:mt-4 sm:gap-2">
+              {productImages.map((img, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImage(index)}
+                  className={`relative size-12 flex-shrink-0 overflow-hidden rounded-md border-2 sm:size-16 ${
+                    selectedImage === index
+                      ? "border-yellow-500"
+                      : "border-transparent"
                   }`}
                 >
-                  {selectedStock <= 0
-                    ? "En rupture de stock"
-                    : selectedStock <= 2
-                    ? selectedStock === 1 ? "Dernier article en stock" : "Derniers articles en stock"
-                    : "En stock"}
-                </span>
-            )}
-            
-            {/* Brand Logo (Right of stock badge) */}
-            {product.brand_logo_url && (
-              <a
-                href={product.brand ? `/products?search=${encodeURIComponent(product.brand)}` : '#'}
-                className={`block h-8 sm:h-10 w-20 relative transition ${product.brand ? 'hover:opacity-80 cursor-pointer' : 'cursor-default pointer-events-none'} ml-auto`}
-                title={product.brand || "Marque"}
-              >
-                <img
-                  src={product.brand_logo_url}
-                  alt={product.brand || "Logo de la marque"}
-                  className="h-full w-full object-contain object-right"
-                />
-              </a>
-            )}
-          </div>
+                  <Image
+                    src={img}
+                    alt={`${product.title} thumbnail ${index + 1}`}
+                    fill
+                    sizes="(max-width: 640px) 48px, 64px"
+                    className="object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-          {/* Quantity Selector */}
-          <div className="mt-4 flex w-full flex-col items-stretch gap-3 sm:mt-6 sm:gap-4 md:mt-8 md:flex-row md:items-end">
-            <div>
-              <span className="text-xs font-medium mb-1.5 block sm:text-sm sm:mb-2">Quantity:</span>
-              <div className="flex items-center h-9 w-full max-w-[120px] rounded-lg border border-gray-200 sm:h-10">
+        {/* Product Details Section */}
+        <div className="flex max-h-[calc(90vh-140px)] w-full flex-col justify-between overflow-y-auto p-4 sm:max-h-[calc(90vh-160px)] sm:p-6 lg:max-h-[min(90vh,calc(100vh-4rem))] lg:w-1/2 lg:p-8">
+          <div>
+            {/* Brand Header */}
+            {product.brand && (
+              <div className="flex items-center gap-2">
+                <a
+                  href={`/products?search=${encodeURIComponent(product.brand)}`}
+                  className="text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-yellow-600"
+                >
+                  {product.brand}
+                </a>
+              </div>
+            )}
+            <h2 className="text-lg font-bold mt-1 sm:text-xl md:text-2xl">{product.title}</h2>
+
+            {/* Price */}
+            <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-4">
+              <div className="flex flex-col">
+                {hasDiscount ? (
+                  <div className="flex items-baseline flex-wrap gap-2.5">
+                    <span className="text-base sm:text-xl text-red-500 line-through font-semibold">
+                      {currentPrice.toFixed(2).replace('.', ',')} Dt
+                    </span>
+                    <span className="text-2xl sm:text-3xl font-bold text-emerald-600">
+                      {product.discounted_price!.toFixed(2).replace('.', ',')} Dt
+                    </span>
+                    <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded font-bold">
+                      -{discountPercent}%
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xl font-bold sm:text-2xl md:text-3xl text-yellow-600">
+                    {selectedSize
+                      ? `${selectedSize.price.toFixed(2).replace('.', ',')} Dt`
+                      : sortedSizes[0]
+                      ? `À partir de ${sortedSizes[0].price.toFixed(2).replace('.', ',')} Dt`
+                      : "Prix indisponible"}
+                  </span>
+                )}
+                {product.sizes.length > 1 && !selectedSize && sortedSizes[0] && (
+                  <span className="text-xs text-gray-500 sm:text-sm">
+                    {`${sortedSizes[0].price.toFixed(2).replace('.', ',')} Dt - ${sortedSizes[
+                      sortedSizes.length - 1
+                    ].price.toFixed(2).replace('.', ',')} Dt`}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Description */}
+            <p className="mt-4 text-sm text-gray-600 sm:mt-6 sm:text-base">
+              {product.description?.trim() ||
+                "Description à venir pour ce produit."}
+            </p>
+
+            {/* Size Selection */}
+            {sortedSizes.length > 0 && (
+              <div className="mt-4 sm:mt-6 md:mt-8">
+                <span className="text-xs font-medium sm:text-sm">Choisir la Taille:</span>
+                <div className="flex gap-1.5 sm:gap-2 mt-1.5 sm:mt-2 flex-wrap">
+                  {sortedSizes.map((sizeOption) => {
+                    const label = getSizeLabel(sizeOption);
+                    const isSelected =
+                      selectedSize?.size === sizeOption.size &&
+                      selectedSize?.unit === sizeOption.unit &&
+                      selectedSize?.quantity === sizeOption.quantity;
+
+                    return (
+                      <button
+                        key={`${sizeOption.size}-${sizeOption.price}-${sizeOption.quantity ?? "na"}`}
+                        onClick={() => setSelectedSize(sizeOption)}
+                        className={`w-fit h-fit px-2 py-1 text-xs rounded-md sm:px-3 sm:py-1.5 sm:text-sm sm:rounded-lg flex flex-col items-center justify-center gap-0.5 sm:gap-1 ${isSelected
+                          ? "bg-black text-white"
+                          : "border border-gray-200 hover:border-gray-300"
+                          }`}
+                      >
+                        <span>{label}</span>
+                        <span className="font-semibold">
+                          {sizeOption.price.toFixed(2).replace('.', ',')} Dt
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Availability badge */}
+            <div className="mt-3 sm:mt-4 flex flex-wrap items-center gap-4">
+              {selectedStock !== null && (
+                <span
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium sm:text-sm ${
+                      selectedStock <= 0
+                        ? "bg-red-100 text-red-700"
+                        : selectedStock <= 2
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-green-100 text-green-700"
+                    }`}
+                  >
+                    {selectedStock <= 0
+                      ? "En rupture de stock"
+                      : selectedStock <= 2
+                      ? selectedStock === 1 ? "Dernier article en stock" : "Derniers articles en stock"
+                      : "En stock"}
+                  </span>
+              )}
+            </div>
+
+            {/* Quantity Selector */}
+            <div className="mt-4 sm:mt-6">
+              <span className="text-xs font-medium sm:text-sm">Quantité:</span>
+              <div className="flex items-center gap-2 mt-1.5 sm:mt-2">
                 <button
                   onClick={decreaseQuantity}
-                  className="w-9 h-full flex items-center justify-center text-base border-r border-gray-200 hover:bg-gray-50 transition sm:w-10 sm:text-lg"
-                  aria-label="Decrease quantity"
+                  disabled={actionDisabled || quantity <= 1}
+                  className="flex size-7 items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50 disabled:opacity-50 sm:size-8"
                 >
                   -
                 </button>
-                <div className="flex-1 h-full flex items-center justify-center font-medium">
+                <span className="w-8 text-center text-sm font-medium sm:w-12 sm:text-base">
                   {quantity}
-                </div>
+                </span>
                 <button
                   onClick={increaseQuantity}
-                  className="w-9 h-full flex items-center justify-center text-base border-l border-gray-200 hover:bg-gray-50 transition sm:w-10 sm:text-lg"
-                  aria-label="Increase quantity"
+                  disabled={
+                    actionDisabled ||
+                    (typeof selectedStock === "number" &&
+                      quantity >= selectedStock)
+                  }
+                  className="flex size-7 items-center justify-center rounded-md border border-gray-200 hover:bg-gray-50 disabled:opacity-50 sm:size-8"
                 >
                   +
                 </button>
               </div>
-            </div>{" "}
-            <div className="flex w-full flex-col gap-2 sm:flex-row md:flex-1 md:gap-3">
-              <Button
-                className="flex-1 rounded-lg bg-yellow-100 py-3 text-sm font-medium text-yellow-900 transition hover:bg-yellow-200 sm:py-4 sm:text-base"
-                size={"lg"}
-                onClick={handleAddToCart}
-                disabled={actionDisabled}
-              >
-                <ShoppingBag className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                Ajouter au Panier
-              </Button>
-              <Button
-                className="flex-1 rounded-lg bg-yellow-600 py-3 text-sm font-medium text-white transition hover:bg-yellow-600/90 sm:py-4 sm:text-base"
-                size={"lg"}
-                onClick={handleOrderNow}
-                disabled={actionDisabled}
-              >
-                <ShoppingCart className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                Commander maintenant
-              </Button>
             </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="mt-6 flex flex-col gap-2 border-t pt-4 sm:mt-8 sm:gap-3 sm:pt-6">
+            <Button
+              onClick={handleAddToCart}
+              disabled={actionDisabled}
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-yellow-500 py-2 text-xs font-semibold text-white hover:bg-yellow-600 disabled:opacity-50 sm:py-3 sm:text-sm"
+            >
+              <ShoppingCart className="size-3.5 sm:size-4" />
+              Ajouter au panier
+            </Button>
+            <Button
+              onClick={handleOrderNow}
+              disabled={actionDisabled}
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-black py-2 text-xs font-semibold text-white hover:bg-black/90 disabled:opacity-50 sm:py-3 sm:text-sm"
+            >
+              <ShoppingBag className="size-3.5 sm:size-4" />
+              Commander Maintenant
+            </Button>
           </div>
         </div>
       </DialogContent>

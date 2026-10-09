@@ -25,6 +25,7 @@ const LOW_STOCK_THRESHOLD = 20;
 const sliderCategories = [
   "Tous les produits",
   "Best sellers",
+  "Promotions",
   "Nouveautés",
   "Bientôt en rupture",
 ] as const;
@@ -35,6 +36,9 @@ type ProductQueryRow = Database["public"]["Tables"]["products"]["Row"] & {
   product_variants?: VariantRow[] | null;
   product_photos?: PhotoRow[] | null;
   product_tags?: { tags?: TagRow | null }[] | null;
+  discount_targets?: {
+    discounts?: Database["public"]["Tables"]["discounts"]["Row"] | null;
+  }[] | null;
 };
 
 type StorefrontProduct = ProductWithRelations & {
@@ -45,7 +49,7 @@ type StorefrontProduct = ProductWithRelations & {
 
 const toPublicPhotoUrl = (url?: string | null): string | null => {
   if (!url) return null;
-  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
   if (!SUPABASE_URL) return null;
   const sanitizedPath = url.replace(/^\/+/, "");
   return `${SUPABASE_URL}/storage/v1/object/public/${PRODUCT_PHOTO_BUCKET}/${sanitizedPath}`;
@@ -98,10 +102,13 @@ const variantSizeLabel = (variant: VariantRow): string => {
 };
 
 const deriveCategories = (
-  product: Pick<StorefrontProduct, "best_seller" | "created_at" | "total_stock">
+  product: Pick<StorefrontProduct, "best_seller" | "created_at" | "total_stock" | "discounted_price">
 ): SliderCategory[] => {
   const tags: SliderCategory[] = ["Tous les produits"];
   if (product.best_seller) tags.push("Best sellers");
+  if (typeof product.discounted_price === "number" && product.discounted_price > 0) {
+    tags.push("Promotions");
+  }
 
   const createdAt = product.created_at ? new Date(product.created_at) : null;
   if (
@@ -145,6 +152,7 @@ const mapToGridProduct = (product: StorefrontProduct): GridProduct => ({
     .filter((url): url is string => typeof url === "string" && url.length > 0),
   description: product.description ?? undefined,
   inStock: (product.total_stock ?? 0) > 0,
+  discounted_price: product.discounted_price ?? null,
 });
 
 const formatPrice = (value: number) =>
@@ -184,12 +192,14 @@ function ProductsContent() {
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
   const [selectedSubcats, setSelectedSubcats] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+
   const [minPrice, setMinPrice] = useState(0);
-  const [maxPrice, setMaxPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(1000);
   const [priceInitialized, setPriceInitialized] = useState(false);
+
   const [visibleCount, setVisibleCount] = useState(16);
 
-  // Fetch DB dictionaries
+  // Load Categories, Subcategories, Brands from Supabase
   useEffect(() => {
     const loadDictionaries = async () => {
       try {
@@ -250,6 +260,9 @@ function ProductsContent() {
            product_photos (*),
            product_tags (
              tags (*)
+           ),
+           discount_targets (
+             discounts (*)
            )
           `
         )
@@ -265,6 +278,7 @@ function ProductsContent() {
         return;
       }
 
+      const now = new Date();
       const normalized: StorefrontProduct[] = (
         (data ?? []) as ProductQueryRow[]
       )
@@ -281,6 +295,38 @@ function ProductsContent() {
           const priceStats = computePriceStats(variants);
           const totalStock = computeTotalStock(variants);
 
+          // Compute active discount
+          const targetDiscounts = (record.discount_targets ?? [])
+            .map((dt) => dt.discounts)
+            .filter((d): d is Database["public"]["Tables"]["discounts"]["Row"] => {
+              if (!d) return false;
+              if (d.active === false) return false;
+              if (d.starts_at && new Date(d.starts_at) > now) return false;
+              if (d.ends_at && new Date(d.ends_at) < now) return false;
+              return true;
+            });
+
+          let computedDiscountedPrice: number | null = null;
+          const minPrice = priceStats?.min ?? null;
+
+          if (targetDiscounts.length > 0 && minPrice !== null && minPrice > 0) {
+            let bestPrice = minPrice;
+            for (const disc of targetDiscounts) {
+              let priceAfter = minPrice;
+              if (disc.type === "percentage") {
+                priceAfter = minPrice * (1 - (disc.amount || 0) / 100);
+              } else if (disc.type === "fixed") {
+                priceAfter = minPrice - (disc.amount || 0);
+              }
+              if (priceAfter < bestPrice) {
+                bestPrice = Math.max(0, priceAfter);
+              }
+            }
+            if (bestPrice < minPrice) {
+              computedDiscountedPrice = Number(bestPrice.toFixed(2));
+            }
+          }
+
           return {
             ...(record as Database["public"]["Tables"]["products"]["Row"]),
             variants,
@@ -290,13 +336,14 @@ function ProductsContent() {
             max_price: priceStats?.max ?? null,
             total_stock: totalStock,
             currency: variants[0]?.currency ?? null,
-            discounted_price: null,
+            discounted_price: computedDiscountedPrice,
             tags,
             tagNames,
             categories: deriveCategories({
               best_seller: record.best_seller,
               created_at: record.created_at,
               total_stock: totalStock,
+              discounted_price: computedDiscountedPrice,
             }),
           } satisfies StorefrontProduct;
         })
@@ -319,23 +366,26 @@ function ProductsContent() {
         .map((variant) => variant.price)
         .filter((price): price is number => typeof price === "number")
     );
-
-    if (!prices.length) return { min: 0, max: 0 };
-    const min = Math.floor(Math.min(...prices));
-    const max = Math.ceil(Math.max(...prices));
-    return { min, max };
+    if (!prices.length) {
+      return { min: 0, max: 1000 };
+    }
+    return {
+      min: Math.floor(Math.min(...prices)),
+      max: Math.ceil(Math.max(...prices)),
+    };
   }, [inventoryProducts]);
 
   const availableSizes = useMemo(() => {
-    const sizes = new Set<string>();
+    const set = new Set<string>();
     inventoryProducts.forEach((product) => {
       product.variants.forEach((variant) => {
-        sizes.add(variantSizeLabel(variant));
+        const label = variantSizeLabel(variant);
+        if (label) {
+          set.add(label);
+        }
       });
     });
-    return Array.from(sizes).sort((a, b) =>
-      a.localeCompare(b, "fr", { numeric: true, sensitivity: "base" })
-    );
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "fr"));
   }, [inventoryProducts]);
 
   const availableTags = useMemo(() => {
@@ -400,54 +450,23 @@ function ProductsContent() {
     setSelectedCategory((prev) => (prev === category ? null : category));
   }, []);
 
-  const handleMinPriceChange = useCallback(
-    (value: number) => {
-      if (!Number.isFinite(value)) return;
-      const clamped = Math.min(Math.max(value, priceBounds.min), maxPrice);
-      setMinPrice(clamped);
-    },
-    [maxPrice, priceBounds.min]
-  );
+  const handleStockToggle = useCallback((value: boolean) => {
+    setOnlyInStock(value);
+  }, []);
 
-  const handleMaxPriceChange = useCallback(
-    (value: number) => {
-      if (!Number.isFinite(value)) return;
-      const clamped = Math.max(Math.min(value, priceBounds.max), minPrice);
-      setMaxPrice(clamped);
-    },
-    [minPrice, priceBounds.max]
-  );
+  const handleBestSellerToggle = useCallback((value: boolean) => {
+    setBestSellerOnly(value);
+  }, []);
 
-  const clearFilters = useCallback(() => {
-    setSearch("");
-    setSelectedCategory(null);
-    setOnlyInStock(false);
-    setBestSellerOnly(false);
-    setSelectedSizes([]);
-    setSelectedTags([]);
-    setSelectedCats([]);
-    setSelectedSubcats([]);
-    setSelectedBrands([]);
-    if (priceBounds.max > 0) {
-      setMinPrice(priceBounds.min);
-      setMaxPrice(priceBounds.max);
-    }
-    router.push("/products");
-  }, [priceBounds, router]);
-
-  const handleSizeToggle = useCallback((sizeLabel: string) => {
+  const handleSizeToggle = useCallback((size: string) => {
     setSelectedSizes((prev) =>
-      prev.includes(sizeLabel)
-        ? prev.filter((size) => size !== sizeLabel)
-        : [...prev, sizeLabel]
+      prev.includes(size) ? prev.filter((item) => item !== size) : [...prev, size]
     );
   }, []);
 
   const handleTagToggle = useCallback((tag: string) => {
     setSelectedTags((prev) =>
-      prev.includes(tag)
-        ? prev.filter((value) => value !== tag)
-        : [...prev, tag]
+      prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag]
     );
   }, []);
 
@@ -468,6 +487,21 @@ function ProductsContent() {
       prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
     );
   }, []);
+
+  const handleClearAllFilters = useCallback(() => {
+    setSelectedCategory(null);
+    setSearch("");
+    setOnlyInStock(false);
+    setBestSellerOnly(false);
+    setSelectedSizes([]);
+    setSelectedTags([]);
+    setSelectedCats([]);
+    setSelectedSubcats([]);
+    setSelectedBrands([]);
+    setMinPrice(priceBounds.min);
+    setMaxPrice(priceBounds.max);
+    setSortOption("pertinence");
+  }, [priceBounds.min, priceBounds.max]);
 
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -499,33 +533,21 @@ function ProductsContent() {
         const matchesTag = product.tagNames.some((tag) =>
           selectedTags.includes(tag)
         );
-        if (!matchesTag) return false;
+        if (!matchesTag) {
+          return false;
+        }
       }
 
-      // Filter by Category: checks product tags against category name or any of its subcategories
+      // Filter by Category
       if (selectedCats.length) {
-        const relatedSubcats = dbSubcategories
-          .filter((sub) => {
-            const parentCat = dbCategories.find((c) => c.id === sub.category_id);
-            return (
-              parentCat &&
-              selectedCats.some((sc) => sc.toLowerCase() === parentCat.name.toLowerCase())
-            );
-          })
-          .map((sub) => sub.name.toLowerCase());
-
-        const allowedKeywords = [
-          ...selectedCats.map((c) => c.toLowerCase()),
-          ...relatedSubcats,
-        ];
-
+        const targetCats = selectedCats.map((c) => c.toLowerCase());
         const matchesCat = product.tagNames.some((tag) =>
-          allowedKeywords.includes(tag.toLowerCase())
+          targetCats.includes(tag.toLowerCase())
         );
         if (!matchesCat) return false;
       }
 
-      // Filter by Subcategory: checks product tags directly against subcategory name
+      // Filter by Subcategory
       if (selectedSubcats.length) {
         const targetSubcats = selectedSubcats.map((s) => s.toLowerCase());
         const matchesSubcat = product.tagNames.some((tag) =>
@@ -544,11 +566,14 @@ function ProductsContent() {
 
       const priceMatch = hasVariants
         ? product.variants.some((variant) => {
-            const price = variant.price;
+            const effectivePrice =
+              typeof product.discounted_price === "number" && product.discounted_price > 0
+                ? product.discounted_price
+                : variant.price;
             return (
-              typeof price === "number" &&
-              price >= minPrice &&
-              price <= maxPrice
+              typeof effectivePrice === "number" &&
+              effectivePrice >= minPrice &&
+              effectivePrice <= maxPrice
             );
           })
         : true;
@@ -581,8 +606,6 @@ function ProductsContent() {
     selectedCats,
     selectedSubcats,
     selectedBrands,
-    dbCategories,
-    dbSubcategories,
   ]);
 
   const gridProducts = useMemo(() => {
@@ -603,15 +626,15 @@ function ProductsContent() {
         break;
       case "price_asc":
         sorted.sort((a, b) => {
-          const priceA = a.min_price ?? Number.POSITIVE_INFINITY;
-          const priceB = b.min_price ?? Number.POSITIVE_INFINITY;
+          const priceA = a.discounted_price ?? a.min_price ?? Number.POSITIVE_INFINITY;
+          const priceB = b.discounted_price ?? b.min_price ?? Number.POSITIVE_INFINITY;
           return priceA - priceB;
         });
         break;
       case "price_desc":
         sorted.sort((a, b) => {
-          const priceA = a.max_price ?? Number.NEGATIVE_INFINITY;
-          const priceB = b.max_price ?? Number.NEGATIVE_INFINITY;
+          const priceA = a.discounted_price ?? a.max_price ?? Number.NEGATIVE_INFINITY;
+          const priceB = b.discounted_price ?? b.max_price ?? Number.NEGATIVE_INFINITY;
           return priceB - priceA;
         });
         break;
@@ -654,48 +677,68 @@ function ProductsContent() {
           selectedSubcats={selectedSubcats}
           availableBrands={availableBrands}
           selectedBrands={selectedBrands}
-          onMinPriceChange={handleMinPriceChange}
-          onMaxPriceChange={handleMaxPriceChange}
-          onToggleInStock={setOnlyInStock}
-          onToggleBestSeller={setBestSellerOnly}
+          onMinPriceChange={setMinPrice}
+          onMaxPriceChange={setMaxPrice}
+          onToggleInStock={handleStockToggle}
+          onToggleBestSeller={handleBestSellerToggle}
           onToggleSize={handleSizeToggle}
           onToggleTag={handleTagToggle}
           onToggleCat={handleCatToggle}
           onToggleSubcat={handleSubcatToggle}
           onToggleBrand={handleBrandToggle}
-          onClearAllFilters={clearFilters}
-          formatPrice={(value) => formatPrice(value)}
+          onClearAllFilters={handleClearAllFilters}
+          formatPrice={formatPrice}
         />
 
-        <section className="flex-1">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <ProductSearch
-              search={search}
-              onSearchChange={setSearch}
-              resultsCount={gridProducts.length}
-            />
-            
-            <div className="flex items-center gap-2 text-sm text-gray-600 shrink-0">
-              <span className="font-medium whitespace-nowrap">Trier par:</span>
+        <div className="flex-1 flex flex-col gap-8">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="w-full sm:w-auto flex-1 max-w-md">
+              <ProductSearch
+                search={search}
+                onSearchChange={setSearch}
+                resultsCount={filteredProducts.length}
+              />
+            </div>
+
+            <div className="w-full sm:w-auto flex items-center justify-end gap-2">
+              <span className="text-sm font-medium text-gray-500 whitespace-nowrap">
+                Trier par :
+              </span>
               <Select value={sortOption} onValueChange={setSortOption}>
-                <SelectTrigger className="w-[200px] bg-white border-gray-200">
+                <SelectTrigger className="w-[180px] bg-white">
                   <SelectValue placeholder="Pertinence" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="pertinence">Pertinence</SelectItem>
-                  <SelectItem value="sales_desc">Ventes, ordre décroissant</SelectItem>
-                  <SelectItem value="name_asc">Nom, A à Z</SelectItem>
-                  <SelectItem value="name_desc">Nom, Z à A</SelectItem>
-                  <SelectItem value="price_asc">Prix, croissant</SelectItem>
-                  <SelectItem value="price_desc">Prix, décroissant</SelectItem>
+                  <SelectItem value="sales_desc">Meilleures ventes</SelectItem>
+                  <SelectItem value="name_asc">Nom : A à Z</SelectItem>
+                  <SelectItem value="name_desc">Nom : Z à A</SelectItem>
+                  <SelectItem value="price_asc">Prix : croissant</SelectItem>
+                  <SelectItem value="price_desc">Prix : décroissant</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
+          <CategorySlider
+            categories={sliderCategories as unknown as SliderCategory[]}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={handleCategorySelect}
+          />
+
           {loading ? (
-            <div className="py-16 text-center text-gray-500">
-              Chargement des produits…
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm animate-pulse space-y-4"
+                >
+                  <div className="aspect-square w-full rounded-lg bg-gray-100" />
+                  <div className="h-4 w-3/4 rounded bg-gray-100" />
+                  <div className="h-4 w-1/2 rounded bg-gray-100" />
+                  <div className="h-9 w-full rounded bg-gray-100" />
+                </div>
+              ))}
             </div>
           ) : (
             <ProductGrid
@@ -703,23 +746,28 @@ function ProductsContent() {
               selectedCategory={selectedCategory}
               maxItems={visibleCount}
               onLoadMore={() => setVisibleCount((prev) => prev + 16)}
-              cardHeight="350px"
-              onProductClick={(product) => {
-                console.log("Product clicked:", product.id);
-              }}
+              className="mt-2"
             />
           )}
-        </section>
+        </div>
       </div>
     </main>
   );
 }
 
-export default function ProductPage() {
+export default function ProductsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen py-32 text-center text-gray-400">Chargement...</div>}>
+    <Suspense
+      fallback={
+        <main className="min-h-screen mx-auto w-[85%] flex flex-col gap-20 mt-28">
+          <ProductHeader />
+          <div className="py-20 text-center text-gray-500">
+            Chargement des produits...
+          </div>
+        </main>
+      }
+    >
       <ProductsContent />
     </Suspense>
   );
 }
-

@@ -21,6 +21,9 @@ type ProductPhotoRow = Database["public"]["Tables"]["product_photos"]["Row"];
 type ProductWithRelations = ProductRow & {
   product_variants: ProductVariantRow[] | null;
   product_photos: ProductPhotoRow[] | null;
+  discount_targets?: {
+    discounts?: Database["public"]["Tables"]["discounts"]["Row"] | null;
+  }[] | null;
 };
 
 type HeroProduct = {
@@ -31,6 +34,7 @@ type HeroProduct = {
   images: string[];
   brand?: string | null;
   brand_logo_url?: string | null;
+  discounted_price?: number | null;
   sizes: Array<{
     variantId?: string;
     size: string;
@@ -64,7 +68,7 @@ const responsive = {
 
 const toPublicPhotoUrl = (url?: string | null): string | null => {
   if (!url) return null;
-  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
   if (!SUPABASE_URL) return null;
   const sanitizedPath = url.replace(/^\/+/, "");
   return `${SUPABASE_URL}/storage/v1/object/public/${PRODUCT_PHOTO_BUCKET}/${sanitizedPath}`;
@@ -99,7 +103,10 @@ export default function HeroCollection() {
         .select(
           `id, name, description, best_seller, brand, brand_logo_url,
            product_variants (*),
-           product_photos (*)
+           product_photos (*),
+           discount_targets (
+             discounts (*)
+           )
           `
         )
         .eq("best_seller", true)
@@ -116,6 +123,7 @@ export default function HeroCollection() {
         return;
       }
 
+      const now = new Date();
       const typedData: ProductWithRelations[] = (data ??
         []) as ProductWithRelations[];
 
@@ -128,6 +136,41 @@ export default function HeroCollection() {
         const primaryPhoto = photos.find((photo) => photo.position === 0)?.url;
         const fallbackPhoto = photos[0]?.url ?? null;
 
+        const prices = variants
+          .map((v) => v.price)
+          .filter((p): p is number => typeof p === "number");
+        const minPrice = prices.length ? Math.min(...prices) : null;
+
+        // Active discounts
+        const targetDiscounts = (record.discount_targets ?? [])
+          .map((dt) => dt.discounts)
+          .filter((d): d is Database["public"]["Tables"]["discounts"]["Row"] => {
+            if (!d) return false;
+            if (d.active === false) return false;
+            if (d.starts_at && new Date(d.starts_at) > now) return false;
+            if (d.ends_at && new Date(d.ends_at) < now) return false;
+            return true;
+          });
+
+        let computedDiscountedPrice: number | null = null;
+        if (targetDiscounts.length > 0 && minPrice !== null && minPrice > 0) {
+          let bestPrice = minPrice;
+          for (const disc of targetDiscounts) {
+            let priceAfter = minPrice;
+            if (disc.type === "percentage") {
+              priceAfter = minPrice * (1 - (disc.amount || 0) / 100);
+            } else if (disc.type === "fixed") {
+              priceAfter = minPrice - (disc.amount || 0);
+            }
+            if (priceAfter < bestPrice) {
+              bestPrice = Math.max(0, priceAfter);
+            }
+          }
+          if (bestPrice < minPrice) {
+            computedDiscountedPrice = Number(bestPrice.toFixed(2));
+          }
+        }
+
         return {
           id: record.id,
           title: record.name,
@@ -135,6 +178,7 @@ export default function HeroCollection() {
           image: primaryPhoto ?? fallbackPhoto,
           brand: record.brand ?? null,
           brand_logo_url: record.brand_logo_url ?? null,
+          discounted_price: computedDiscountedPrice,
           images: photos
             .map((photo) => photo.url)
             .filter((url): url is string => Boolean(url)),
@@ -169,7 +213,7 @@ export default function HeroCollection() {
   const carouselProducts = products;
 
   return (
-    <div className="w-full  overflow-hidden">
+    <div className="w-full overflow-hidden">
       <div className="flex justify-center items-center mb-10">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">Meilleures ventes</h2>
       </div>
@@ -204,56 +248,86 @@ export default function HeroCollection() {
             </div>
           ))}
         {!loading &&
-          carouselProducts.map((item) => (
-            <div key={item.id} className="relative">
-              <motion.div
-                className="group relative h-[400px] rounded-lg overflow-hidden bg-white border border-gray-100 p-4 hover:cursor-pointer flex items-center justify-center"
-                whileHover={{ y: -5 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => setSelectedProduct(item)}
-              >
-                {item.image ? (
-                  <Image
-                    src={item.image}
-                    alt={item.title}
-                    width={400}
-                    height={450}
-                    className="max-h-full max-w-full w-auto h-auto object-contain group-hover:scale-105 transition duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-white text-gray-400">
-                    Aucune image
+          carouselProducts.map((item) => {
+            const originalPrice = item.sizes && item.sizes.length ? item.sizes[0].price : 0;
+            const hasDiscount =
+              typeof item.discounted_price === "number" &&
+              item.discounted_price > 0 &&
+              item.discounted_price < originalPrice;
+            const discountPercent =
+              hasDiscount && originalPrice > 0
+                ? Math.round(((originalPrice - item.discounted_price!) / originalPrice) * 100)
+                : 0;
+
+            return (
+              <div key={item.id} className="relative">
+                <motion.div
+                  className="group relative h-[400px] rounded-lg overflow-hidden bg-white border border-gray-100 p-4 hover:cursor-pointer flex items-center justify-center"
+                  whileHover={{ y: -5 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={() => setSelectedProduct(item)}
+                >
+                  {/* Discount Badge */}
+                  {hasDiscount && (
+                    <div className="absolute top-4 left-4 z-20 bg-red-600 text-white font-bold text-xs px-2.5 py-1 rounded shadow">
+                      -{discountPercent}%
+                    </div>
+                  )}
+
+                  {item.image ? (
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      width={400}
+                      height={450}
+                      className="max-h-full max-w-full w-auto h-auto object-contain group-hover:scale-105 transition duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-white text-gray-400">
+                      Aucune image
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 pointer-events-none group-hover:bg-black/[0.02] transition-colors" />
+
+                  <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-3.5 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
+                    {hasDiscount ? (
+                      <>
+                        <span className="text-xs text-red-500 line-through font-semibold">
+                          {originalPrice.toFixed(2).replace('.', ',')} Dt
+                        </span>
+                        <span className="text-base font-bold text-emerald-600">
+                          {item.discounted_price!.toFixed(2).replace('.', ',')} Dt
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-base font-semibold text-yellow-600">
+                        {item.sizes && item.sizes.length
+                          ? `${item.sizes[0].price.toFixed(2).replace('.', ',')} Dt`
+                          : "Prix ND"}
+                      </span>
+                    )}
                   </div>
-                )}
 
-                <div className="absolute inset-0 pointer-events-none group-hover:bg-black/[0.02] transition-colors" />
+                  <div className="absolute bottom-0 left-0 right-0 h-[150px] bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
-                <div className="absolute top-4 right-4 bg-white px-4 py-2 rounded-full shadow-2xl">
-                  <span className="text-lg font-semibold text-yellow-600">
-                    {item.sizes && item.sizes.length
-                      ? `${item.sizes[0].price.toFixed(2).replace('.', ',')} Dt`
-                      : "Prix ND"}
-                  </span>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 h-[150px] bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
-
-                <div className="absolute bottom-0 left-0 right-0 pb-6 px-6 z-10">
-                  <motion.h3 className="text-2xl font-semibold text-white mb-1 group-hover:-translate-y-1 transition-transform duration-200">
-                    {item.title}
-                  </motion.h3>
-                  <p className="text-sm text-gray-200 group-hover:text-white/90 transition-colors duration-200 line-clamp-2">
-                    {item.description ?? "Produit populaire"}
-                  </p>
-                </div>
-              </motion.div>
-            </div>
-          ))}
+                  <div className="absolute bottom-0 left-0 right-0 pb-6 px-6 z-10">
+                    <motion.h3 className="text-2xl font-semibold text-white mb-1 group-hover:-translate-y-1 transition-transform duration-200">
+                      {item.title}
+                    </motion.h3>
+                    <p className="text-sm text-gray-200 group-hover:text-white/90 transition-colors duration-200 line-clamp-2">
+                      {item.description ?? "Produit populaire"}
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+            );
+          })}
       </Carousel>
       <div className="flex justify-center items-center mb-10">
         <Link
-          href={"/"}
-          onClick={(e) => e.stopPropagation()} // prevent modal open on click
+          href={"/products"}
+          onClick={(e) => e.stopPropagation()}
           className="inline-block text-white py-3 px-6 rounded-sm text-sm font-medium sm:py-4 sm:px-8 sm:text-base bg-yellow-600 hover:bg-yellow-600/90 transition-all duration-200 mt-6 sm:mt-10"
         >
           <ShoppingBasket className="inline-block mr-2 size-5" />
@@ -277,6 +351,7 @@ export default function HeroCollection() {
             brand: selectedProduct.brand,
             brand_logo_url: selectedProduct.brand_logo_url,
             description: selectedProduct.description ?? undefined,
+            discounted_price: selectedProduct.discounted_price,
           }}
         />
       )}
