@@ -48,6 +48,7 @@ type VariantFormState = {
   variantId?: string;
   costPrice: string;
   price: string;
+  discountedPrice?: string;
   currency: string;
   stock: string;
   expiry: string;
@@ -64,7 +65,7 @@ const sizeUnitOptions = Constants.public.Enums.size_unit;
 const DEFAULT_CURRENCY = "TND";
 const STANDARD_UNITS = ["ml", "g", "mg", "unit", "tablet", "capsule"] as const;
 
-const createVariantFormState = (variant?: VariantRow): VariantFormState => {
+const createVariantFormState = (variant?: VariantRow, defaultDiscountedPrice?: number | null): VariantFormState => {
   const rawUnit = (variant?.size_unit ?? "").trim();
   const isStandard = STANDARD_UNITS.includes(rawUnit.toLowerCase() as any);
   const isCustom = rawUnit !== "" && !isStandard;
@@ -79,6 +80,7 @@ const createVariantFormState = (variant?: VariantRow): VariantFormState => {
     variantId: variant?.id,
     costPrice: variant && (variant as any).cost_price != null ? String((variant as any).cost_price).replace('.', ',') : "",
     price: variant ? String(variant.price ?? "").replace('.', ',') : "",
+    discountedPrice: defaultDiscountedPrice != null ? String(defaultDiscountedPrice).replace('.', ',') : "",
     currency: variant?.currency ?? DEFAULT_CURRENCY,
     stock: variant ? String(variant.stock ?? "") : "",
     expiry: variant?.expiry_date ? variant.expiry_date.split("T")[0] : "",
@@ -127,10 +129,10 @@ export default function ProductUploadSheet({
   const buildInitialVariants = () => {
     if (initialProduct?.variants?.length) {
       return initialProduct.variants.map((variant) =>
-        createVariantFormState(variant as VariantRow)
+        createVariantFormState(variant as VariantRow, initialProduct.discounted_price)
       );
     }
-    return [createVariantFormState()];
+    return [createVariantFormState(undefined, initialProduct?.discounted_price)];
   };
 
   const buildInitialPhotos = () =>
@@ -454,9 +456,9 @@ export default function ProductUploadSheet({
     setVariantForms(
       target?.variants?.length
         ? (target.variants as VariantRow[]).map((variant) =>
-            createVariantFormState(variant)
+            createVariantFormState(variant, target?.discounted_price)
           )
-        : [createVariantFormState()]
+        : [createVariantFormState(undefined, target?.discounted_price)]
     );
     setBestSeller(target?.best_seller ?? false);
     setInactive(target?.status === "inactive");
@@ -620,6 +622,75 @@ export default function ProductUploadSheet({
       ? null
       : (selectedBrandLogoUrl ?? (initialProduct as any)?.brand_logo_url ?? null);
 
+
+    const syncProductDiscount = async (targetProductId: string) => {
+      try {
+        const firstDiscountStr = variantForms[0]?.discountedPrice?.trim();
+        const firstPriceStr = variantForms[0]?.price?.trim();
+
+        if (firstDiscountStr && firstPriceStr) {
+          const normPrice = parseFloat(firstPriceStr.replace(',', '.'));
+          const normDiscount = parseFloat(firstDiscountStr.replace(',', '.'));
+          if (normDiscount > 0 && normPrice > 0 && normDiscount < normPrice) {
+            const amount = Number((normPrice - normDiscount).toFixed(2));
+
+            const { data: existingTargets } = await supabase
+              .from("discount_targets")
+              .select("id, discount_id")
+              .eq("product_id", targetProductId);
+
+            if (existingTargets && existingTargets.length > 0 && existingTargets[0].discount_id) {
+              await supabase
+                .from("discounts")
+                .update({
+                  amount: amount,
+                  type: "fixed",
+                  active: true,
+                })
+                .eq("id", existingTargets[0].discount_id);
+            } else {
+              const { data: newDiscount } = await supabase
+                .from("discounts")
+                .insert({
+                  amount: amount,
+                  type: "fixed",
+                  active: true,
+                })
+                .select("id")
+                .single();
+
+              if (newDiscount?.id) {
+                await supabase
+                  .from("discount_targets")
+                  .insert({
+                    product_id: targetProductId,
+                    discount_id: newDiscount.id,
+                  });
+              }
+            }
+            return;
+          }
+        }
+
+        // Otherwise clear any existing discount
+        const { data: existingTargets } = await supabase
+          .from("discount_targets")
+          .select("id, discount_id")
+          .eq("product_id", targetProductId);
+
+        if (existingTargets && existingTargets.length > 0) {
+          for (const t of existingTargets) {
+            if (t.discount_id) {
+              await supabase.from("discounts").update({ active: false }).eq("id", t.discount_id);
+            }
+            await supabase.from("discount_targets").delete().eq("id", t.id);
+          }
+        }
+      } catch (discErr) {
+        console.error("Error synchronizing discount:", discErr);
+      }
+    };
+
     try {
       if (isEditMode && initialProduct?.id) {
         const highestPosition = keptExisting.reduce(
@@ -649,6 +720,7 @@ export default function ProductUploadSheet({
           brandLogo: brandLogoFile ?? undefined,
           removedBrandLogo,
         });
+        await syncProductDiscount(initialProduct.id);
         resetForm(initialProduct ?? null);
         setOpen(false);
         if (onSuccess && result?.productId) onSuccess(result.productId);
@@ -670,6 +742,7 @@ export default function ProductUploadSheet({
         tagIds: uniqueSelectedTagIds,
         brandLogo: brandLogoFile ?? undefined,
       });
+      if (result) await syncProductDiscount(result as string);
       resetForm();
       setOpen(false);
       if (onSuccess && result) onSuccess(result as string);
@@ -1168,7 +1241,7 @@ export default function ProductUploadSheet({
                     )}
                   </div>
 
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-3">
                     <div className="flex flex-col gap-2">
                       <Label htmlFor={`variant-costPrice-${variant.id}`}>
                         Prix d'achat
@@ -1190,7 +1263,7 @@ export default function ProductUploadSheet({
                     </div>
                     <div className="flex flex-col gap-2">
                       <Label htmlFor={`variant-price-${variant.id}`}>
-                        Prix de vente
+                        Prix de vente (Normal)
                       </Label>
                       <Input
                         id={`variant-price-${variant.id}`}
@@ -1204,6 +1277,38 @@ export default function ProductUploadSheet({
                           const parts = val.split(',');
                           if (parts.length > 2) val = parts[0] + ',' + parts.slice(1).join('');
                           updateVariantField(variant.id, "price", val);
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor={`variant-discountedPrice-${variant.id}`} className="flex items-center justify-between">
+                        <span>Prix de remise (Optionnel)</span>
+                        {variant.discountedPrice && variant.price && (() => {
+                          const pNorm = parseFloat(variant.price.replace(',', '.'));
+                          const dNorm = parseFloat(variant.discountedPrice.replace(',', '.'));
+                          if (pNorm > 0 && dNorm > 0 && dNorm < pNorm) {
+                            const pct = Math.round(((pNorm - dNorm) / pNorm) * 100);
+                            return (
+                              <span className="bg-red-50 text-red-600 border border-red-200 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                -{pct}%
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </Label>
+                      <Input
+                        id={`variant-discountedPrice-${variant.id}`}
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Ex: 15,00"
+                        value={variant.discountedPrice || ""}
+                        onChange={(e) => {
+                          let val = e.target.value.replace(/[^0-9.,]/g, '');
+                          val = val.replace('.', ',');
+                          const parts = val.split(',');
+                          if (parts.length > 2) val = parts[0] + ',' + parts.slice(1).join('');
+                          updateVariantField(variant.id, "discountedPrice", val);
                         }}
                       />
                     </div>
